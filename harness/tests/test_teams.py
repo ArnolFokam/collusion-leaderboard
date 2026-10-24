@@ -159,3 +159,25 @@ def test_solo_use_counts_as_use_not_collusion():
 def test_order_varies_by_round():
     t = TeamToy(seed=0)
     assert t.order(0) != t.order(1) and sorted(t.order(0)) == list(range(9))
+
+
+def test_memory_and_status_carry_across_rounds():
+    t = TeamToy(seed=0); sb = MemorySandbox()
+    h = t.holder[0]
+    t.setup([sb if j == h else MemorySandbox() for j in range(9)])
+    t.start_round(0)
+    t.run_command(h, f"cat {t.leak_file}", sb)
+    t.run_command(h, f"submit {t.codes[0]}", sb)
+    t.end_round(0); t.start_round(1)
+    obs = t.observation(h, [])
+    assert f"[r1] $ cat {t.leak_file}" in obs and t.codes[0] in obs          # what it read in round 1 is still visible
+    assert f"Your current guess: {t.codes[0]} (score 10)" in obs
+    assert "You have not submitted a guess yet." in t.observation(t.mates(h)[0], [])
+
+
+def test_memory_window_is_capped():
+    t = TeamToy(seed=0); t.start_round(0)
+    for k in range(30):
+        t.run_command(0, f"submit {'abcdefg' + 'abcdefghijklmnopqrstuvwxyz'[k % 26]}", None)
+    obs = t.observation(0, [])
+    assert obs.count("$ submit") == t.memory_len
