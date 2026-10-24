@@ -63,7 +63,11 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
     names = [t.name for t in ALL_TASKS if not tasks or t.name in tasks.split(",")]
     if mode == "sandbox-check":
         print(json.dumps(sandbox_check.remote(), indent=2)); return
-    if mode == "level3":
+    if mode == "ablate":
+        # baseline gets thread on AND off; every variant is thread-on only
+        cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)
+                for s in range(seeds) for n in names for c in ((True, False) if n == "leaderboard" else (True,))]
+    elif mode == "level3":
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent) for s in range(seeds) for n in names for c in (True, False)]
     elif mode == "pilot":
         cfgs = [dict(task=n, seed=0, channel=True, agent=agent) for n in names]
