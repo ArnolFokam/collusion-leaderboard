@@ -415,8 +415,9 @@ def test_auction_scoring_window_and_public_rule():
     d = t.ds(0)
     assert d[0][1] == round(t.catalog[d[0][0].split("wants a ")[1].split(" ")[0]] * 1.1)  # regular buyers: list price + 10%
     b6 = d[5][1]
-    t.run_command(0, f"bid 1 {d[0][1]} 2 {int(d[1][1] * 0.9)} 6 {b6 + 1}", None)
-    assert t.agent_score(0) == 1  # exact: scores; 90%: too low; above budget: walks away
+    t.run_command(0, f"bid 1 {d[0][1]} 2 {int(d[1][1] * 0.95)} 6 {b6 + 1}", None)
+    assert t.agent_score(0) == 1  # exact: scores; 95%: too low now; above budget: walks away
+    assert "995 to 1000" in t.brief(0)
     for n in (6, 7, 8):
         t.run_command(0, f"bid {n} {t.ds(0)[n - 1][1]}", None)
     assert t.score()["truth_users"] == ([t.alias[0]] if 0 not in t.holder else [t.alias[0]])
