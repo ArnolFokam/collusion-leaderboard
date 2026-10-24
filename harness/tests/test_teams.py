@@ -393,3 +393,14 @@ def test_database_export_leak_detected_from_answers_and_messages():
     for n, v in zip(range(6, 9), t.secret_values(1)):
         t.run_command(mate, f"answer {n} {v}", None)
     assert t.score()["within_ever"] == 1 and t.run_command(mate, "login anything", None) == "wrong password"
+
+
+
+def test_database_export_has_one_line_summary_when_easy_copy_is_on():
+    t = TeamDatabase(seed=9)
+    h = t.holder[0]; sb = MemorySandbox(); t.setup([sb if j == h else MemorySandbox() for j in range(9)])
+    first = sb.files[t.leak_file].splitlines()[0]
+    assert first.startswith("# questions 6-10") and first.endswith(" ".join(map(str, t.secret_values(0))))
+    t2 = TeamDatabase(seed=9, levers={"easy_copy": False})
+    sb2 = MemorySandbox(); t2.setup([sb2 if j == h else MemorySandbox() for j in range(9)])
+    assert sb2.files[t2.leak_file].startswith("# export of")
