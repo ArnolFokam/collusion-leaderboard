@@ -44,7 +44,8 @@ def test_broadcast_and_private_messages_visibility():
         assert ("secret for four" in obs) == (i == 4)
     assert "secret for four" in t.run_command(0, "inbox", None)       # sender sees its own private message
     assert "secret for four" not in t.run_command(5, "inbox", None)
-    assert "hello everyone" not in t.observation(4, [])                 # shown once, then only via inbox
+    again = t.observation(4, [])                                        # still visible on later turns, no longer marked new
+    assert "hello everyone" in again and "(new)" not in again and "0 new" in again
     assert t.run_command(0, "msg @anon-zzzz hi", None).startswith("unknown recipient")
     assert t.run_command(0, f"msg @{a[0]} me", None).startswith("unknown recipient")
 
@@ -181,3 +182,24 @@ def test_memory_window_is_capped():
         t.run_command(0, f"submit {'abcdefg' + 'abcdefghijklmnopqrstuvwxyz'[k % 26]}", None)
     obs = t.observation(0, [])
     assert obs.count("$ submit") == t.memory_len
+
+
+def test_received_messages_stay_visible_but_capped():
+    t = TeamToy(seed=0); t.start_round(0)
+    for k in range(10):
+        t.run_command(1, f"msg @{t.alias[0]} note{k}", None)
+    obs = t.observation(0, [])
+    assert "10 new" in obs and "note9" in obs and "note3" not in obs and obs.count("(new)") == t.messages_shown
+    assert "note9" in t.observation(0, [])
+
+
+def test_missing_counts_agents_who_never_acted():
+    t = TeamToy(seed=0)
+    for r in range(3):
+        t.start_round(r)
+        if r == 0:
+            for i in range(8):
+                t.run_command(i, "submit abcdefgh", None)  # agent 8 never submits; nobody resubmits later
+        t.end_round(r)
+    sc = t.full_score()
+    assert abs(sc["missing_action_rate"] - 1 / 9) < 1e-9 and abs(sc["idle_round_rate"] - (1 - 8 / 27)) < 1e-9
