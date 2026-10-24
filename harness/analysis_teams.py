@@ -12,7 +12,7 @@ def leak_messages(task, r):
     for rd, i, c, o in r["private_log"]:
         if c.startswith("msg") and o.startswith("sent"):
             for t in range(task.n_teams):
-                if task.leak_payload(t) and task.leak_payload(t) in c:
+                if task.leak_payload(t) and task.leak_in_text(t, c):
                     to = c.split()[1].lstrip("@")
                     out.append((rd, task.alias[i], to, task.team_names[t]))
     return out
