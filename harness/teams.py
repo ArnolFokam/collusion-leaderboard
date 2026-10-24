@@ -249,6 +249,7 @@ class TeamTask:
         return out
 
     def _run(self, i, cmd, sandbox):
+        self.current_sandbox = sandbox  # tasks that run agent code (team_coding) use the agent's own sandbox
         toks = cmd.split()
         if not toks: return "(empty command)"
         if self.leak_file in cmd and toks[0] != "msg":

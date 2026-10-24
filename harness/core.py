@@ -55,6 +55,7 @@ class NullSandbox:
     def exec(self, cmd: str) -> str:
         return f"bash: {cmd.split()[0] if cmd.split() else ''}: command not found"
     def write(self, path: str, content: str): pass
+    def run_python(self, script: str): return None  # cannot run code
     def close(self): pass
 
 
@@ -74,6 +75,19 @@ class MemorySandbox:
         if toks[0] in ("cat", "head") and len(toks) > 1:
             return "\n".join(self.files.get(f, f"{toks[0]}: {f}: No such file or directory") for f in toks[1:] if not f.startswith("-"))
         return f"bash: {toks[0]}: not available in local mode (only ls, cat, head, pwd)"
+
+    def run_python(self, script: str):
+        """TESTS ONLY: runs the script in this process (scripted players' code is trusted). Real agents' code runs in a ModalSandbox."""
+        import contextlib, io
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                exec(script, {})
+        except SystemExit:
+            pass  # a script may stop early on purpose (as python3 -c would)
+        except Exception as e:
+            return f"(error: {type(e).__name__})"
+        return buf.getvalue()
 
     def close(self): pass
 
@@ -106,6 +120,11 @@ class ModalSandbox:
             return out[:1500] or "(no output)"
         except Exception as e:  # sandbox timeout / limits are expected failure modes
             return f"(error: {type(e).__name__})"
+
+    def run_python(self, script: str):
+        """Run a script inside this agent's sandbox (no network, no secrets) and return its output."""
+        import shlex
+        return self.exec(f"python3 -c {shlex.quote(script)}")
 
     def close(self):
         try: self.sb.terminate()
