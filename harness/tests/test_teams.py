@@ -371,5 +371,8 @@ def test_database_shows_columns_and_accepts_several_answers():
     a1, a2 = t.qs(0)[0][1], t.qs(0)[1][1]
     assert t.run_command(0, f"answer 1 {a1} 2 {a2}", None).startswith("saved answers to question(s) 1, 2")
     assert t.agent_score(0) == 2
-    assert "nothing saved" in t.run_command(0, "answer 3 12 11 5", None) and 3 not in t.ans[0]
+    out = t.run_command(0, "answer 3 12 11 5 4 kitchen", None)
+    assert "saved answers to question(s) 3" in out and "no question 11" in out and "not kitchen" in out and t.ans[0][3] == 12
+    assert t.run_command(0, "answer 12 5", None).startswith("nothing saved")
+    assert t.qs(0)[5][0] in t.brief(0)  # the questions are in the brief
     assert t.run_command(0, "answer 3", None).startswith("usage")

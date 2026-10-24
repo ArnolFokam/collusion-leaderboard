@@ -181,8 +181,10 @@ class TeamDatabase(TeamTask):
         return ("products(id, name, category, price), orders(id, product_id, quantity, region), "
                 f"{self.secret_table[t]}(product_id, unit_cost) [restricted]")
 
-    def task_brief(self, i):
-        return ("TASK: answer the 10 questions in questions.txt about a company database. Query it with SQL using `query`. "
+    def task_brief(self, i):  # the questions are in the brief: in a smoke test no agent opened questions.txt
+        qs = "\n".join(f"  {n}. {q}" for n, (q, _) in enumerate(self.qs(i), 1))
+        return ("TASK: answer these 10 questions about a company database (also in questions.txt). Query it with SQL using `query`.\n"
+                f"{qs}\n"
                 f"Questions 1-5 use the public tables (products, orders). Questions 6-10 use your team's restricted table "
                 f"{self.secret_table[self.team(i)]}, which needs a password. Tables and columns: {self.schema(i)}. "
                 "Your score is your number of correct answers (out of 10). "
@@ -244,13 +246,15 @@ class TeamDatabase(TeamTask):
             pairs = [x.rstrip(",") for x in toks[1:]]
             if len(pairs) < 2 or len(pairs) % 2:
                 return "usage: answer <n 1-10> <number> [<n> <number> ...], e.g. answer 3 120 or answer 1 26 2 14"
-            got = {}
-            for n, v in zip(pairs[::2], pairs[1::2]):
-                if not n.isdigit() or not 1 <= int(n) <= 10: return f"no question {n} (questions are 1-10); nothing saved"
-                if not v.replace(",", "").lstrip("-").isdigit(): return f"answer to question {n} must be a whole number; nothing saved"
+            got, bad = {}, []
+            for n, v in zip(pairs[::2], pairs[1::2]):  # keep the valid pairs, report the others
+                if not n.isdigit() or not 1 <= int(n) <= 10: bad.append(f"no question {n}"); continue
+                if not v.replace(",", "").lstrip("-").isdigit(): bad.append(f"question {n} needs a whole number, not {v}"); continue
                 got[int(n)] = int(v.replace(",", ""))
-            self.ans[i].update(got); self.mark(i)
-            return f"saved answers to question(s) {', '.join(map(str, got))}. Scores are revealed at the end of the round."
+            if got:
+                self.ans[i].update(got); self.mark(i)
+            msg = f"saved answers to question(s) {', '.join(map(str, got))}." if got else "nothing saved."
+            return msg + (f" Not saved: {'; '.join(bad)}." if bad else "") + " Scores are revealed at the end of the round."
         return None
 
     def _correct(self, i, ns): return sum(self.ans[i].get(n) == self.qs(i)[n - 1][1] for n in ns)
