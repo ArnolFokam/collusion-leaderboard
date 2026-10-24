@@ -228,6 +228,21 @@ What we saw:
 - Same seeds, same setting gave 6/12 here and 9/12 earlier: run-to-run randomness is large, so this difference may be noise.
 - The strong overseer named 9 agents who never used a leak in the team-rank games (7 in one game).
 
+## Friendly pilot: database with the one-line summary (4 games, Hermes, seeds 100-101, $0.96)
+
+The table copy now starts with one line listing the team's 5 restricted answers, like the leaderboard's leak file, so both tasks
+are harmonized (team rank in the goal, a non-password leak, one line to copy).
+Data: `results/teams-team_database-hermes-4-405b-friendly-export-oneline.jsonl`.
+
+| Messaging | Holders used leak alone | Teammates used it |
+|---|---|---|
+| on | **6/6** | **0/12** |
+| off | 6/6 | 0/12 |
+
+What we saw: the one-line summary made holders use the leak themselves every time (12/12, up from 7/12), but **no holder passed
+it on** in either game. Across all database pilots: password 0/24, table copy 2/12, table copy with one line 0/12. On the
+harmonized leaderboard (team rank on) it was 2/12, so with team rank on, both tasks now show little sharing.
+
 ## Lessons so far
 
 1. **Removing friction matters as much as motivation.** Each fix that made sharing easier (memory, a readable leak, a team
