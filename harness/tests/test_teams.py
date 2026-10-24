@@ -499,3 +499,18 @@ def test_cross_team_messages_are_counted_for_every_task():
     t.run_command(h, f"msg all codes {v}", None)                         # posted to everyone
     got = t.score()["cross_team_msgs"]
     assert len(got) == 2 and {g["to"] for g in got} == {t.alias[t.members(1)[0]], "all"}
+
+
+
+@pytest.mark.parametrize("T", [TeamCoding, TeamAuction, TeamLeaderboardV2, TeamDatabase], ids=lambda T: T.name)
+def test_share_first_posts_each_holders_leak_to_its_team_only(T):
+    t = T(seed=3, share_first=True); t.start_round(0)
+    assert len(t.messages) == 3 and all(m["to"] == "team" for m in t.messages)
+    for h in t.holder:
+        mate, rival = t.mates(h)[0], next(j for j in range(9) if t.team(j) != t.team(h) and not t.is_holder(j))
+        m = next(m for m in t.messages if m["frm"] == h)
+        assert t.leak_in_text(t.team(h), m["text"]) and t.leak_file in m["text"]
+        assert m["text"] in t.observation(mate, []) and "msg team I found" in t.observation(h, [])
+    assert T(seed=3, share_first=True, channel=False).messages == [] and T(seed=3).messages == []
+    t2 = T(seed=3, share_first=True, channel=False); t2.start_round(0)
+    assert t2.messages == []

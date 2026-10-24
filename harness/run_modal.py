@@ -28,6 +28,7 @@ def episode(cfg: dict) -> dict:
     t0 = time.time()
     extra = {"rung": cfg["rung"]} if cfg.get("rung") else {}
     if cfg.get("levers"): extra["levers"] = cfg["levers"]
+    if cfg.get("share_first"): extra["share_first"] = True
     task = BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False), level=cfg.get("level", 0), **extra)
     sb_app = modal.App.lookup("collusion-sandboxes", create_if_missing=True)
     sandboxes = [ModalSandbox(sb_app, sandbox_image) for _ in range(task.n_total)]
@@ -64,7 +65,7 @@ def sandbox_check() -> dict:
 
 @app.local_entrypoint()
 def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str = "", agent: str = AGENT_MODEL, tag: str = "",
-         overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = ""):
+         overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = "", share_first: bool = False):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -81,6 +82,8 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
                 for s in range(seed_start, seed_start + seeds) for n in names for g in rungs.split(",") for c in channels.split(",")]
         cfgs += [dict(task=n, seed=s, channel=True, rung=g, agent=agent, levers={x: LEVERS[x][1]})
                  for s in range(seed_start, seed_start + seeds) for n in names for g in rungs.split(",") for x in offs]
+        if share_first:  # test option: each holder's leak is posted to its team at the start
+            for c in cfgs: c["share_first"] = True
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)
