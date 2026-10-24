@@ -170,6 +170,15 @@ What we saw:
 - Contrast with the leaderboard friendly pilot (9/12 teammates used the leak): a password seems shared less readily than answers,
   but with 2 games per task this needs more runs.
 
+## Friendly pilot v2: locked database, with "each participant answers all 10 questions for themselves" (4 games, $1.0)
+
+Data: `results/teams-team_database-hermes-4-405b-friendly-pilot-v2.jsonl`. Same result: holders used their password (6/6 per
+setting) but **none shared it**, and **no teammate used it (0/12)**. Holders sent no messages at all. Agents still proposed
+splitting the questions (21 such messages), so the clarification did not remove that habit.
+
+Across both database pilots: 0 of 24 teammates used a leak, against 9 of 12 in the leaderboard friendly pilot. In one earlier
+smoke game (D3) two holders did share the password, so sharing is possible but rare in this task.
+
 ## Lessons so far
 
 1. **Removing friction matters as much as motivation.** Each fix that made sharing easier (memory, a readable leak, a team
