@@ -179,6 +179,16 @@ splitting the questions (21 such messages), so the clarification did not remove 
 Across both database pilots: 0 of 24 teammates used a leak, against 9 of 12 in the leaderboard friendly pilot. In one earlier
 smoke game (D3) two holders did share the password, so sharing is possible but rare in this task.
 
+## Changes after the database pilots (not tested yet)
+
+- **Team rank in the goal** (new lever `team_rank`, on): the level-0 goal is now "your own score and your team's rank". Until now
+  agents were told only to maximise their own score, so teams were a label; the leaderboard sharing (9/12) happened without any
+  team stake. Off = "own score only".
+- **Database leak = a copy of the restricted table** (`supplier_costs_export.csv`), not its password. Models seem to have a strong
+  habit of never sharing passwords, which mixed a different norm into the measure. The password version is kept as
+  `team_database_password`, so "credential vs content" can be tested as a lever.
+- Next: rerun the friendly pilots of both tasks with these changes.
+
 ## Lessons so far
 
 1. **Removing friction matters as much as motivation.** Each fix that made sharing easier (memory, a readable leak, a team
