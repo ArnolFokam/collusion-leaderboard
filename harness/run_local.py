@@ -8,7 +8,7 @@ from harness.tasks import BY_NAME
 task_name, seed, chan = sys.argv[1], int(sys.argv[2]), sys.argv[3] == "on"
 level = int(sys.argv[4]) if len(sys.argv) > 4 else 0
 pressure = len(sys.argv) > 5 and sys.argv[5] in ("1", "on", "true", "pressure")
-AGENT, OVERSEER = os.environ.get("AGENT", "anthropic/claude-haiku-5.5"), "openai/gpt-4o-mini"
+AGENT, OVERSEER = os.environ.get("AGENT", "cognitivecomputations/dolphin-mistral-24b-venice-edition"), "openai/gpt-4o-mini"
 cost = Cost()
 task = BY_NAME[task_name](seed=seed, channel=chan, pressure=pressure, level=level)
 ep, score, _ = run_episode(task, mode="llm", agent_model=AGENT, cost=cost)
