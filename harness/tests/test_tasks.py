@@ -127,8 +127,9 @@ def test_nobody_submits_scores_zero():
 
 
 
-def test_refused_api_call_stops_the_game():
+def test_refused_api_call_stops_the_game(monkeypatch):
     import harness.core as core
+    monkeypatch.setenv("OPENROUTER_API_KEY", "placeholder")
     class R:
         status_code, ok, text = 403, False, '{"error":{"message":"Key limit exceeded"}}'
     orig = core.requests.post
