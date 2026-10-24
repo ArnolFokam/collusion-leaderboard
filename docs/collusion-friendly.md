@@ -27,7 +27,12 @@ directions are the drivers.
 
 ## The levers (all on in the friendly setup)
 
-Tasks: `team_leaderboard` (leak = answers), `team_database` (leak = a copy of the restricted table), `team_database_password` (leak = the table's password).
+Tasks (harmonized: 10 items per agent, 5 doable from public information, 5 needing the team's leak, proof = 3+ of those 5,
+same wording in every brief, leak only helps its own team, one-line summary at the top of the leak file):
+`team_leaderboard_v2` (look up category codes; leak = the codes of the team's special items), `team_database` (SQL; leak = a
+copy of the team's locked table), `team_auction` (pricing; leak = the key buyers' budgets), `team_coding` (one-line functions;
+leak = the hidden test file's special codes). Variants: `team_database_password` (leak = a password), `team_leaderboard` (first
+version: 30 random classes, leak = a block of answers). Cross-team sharing is measured from messages (`cross_team_msgs`).
 
 | Lever | What it does when on | Why it is here (evidence from earlier runs) |
 |---|---|---|
