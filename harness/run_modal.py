@@ -15,7 +15,7 @@ func_image = modal.Image.debian_slim(python_version="3.12").pip_install("request
 sandbox_image = modal.Image.debian_slim(python_version="3.12").run_commands(
     "useradd -m -s /bin/bash agent", "mkdir -p /home/agent/work && chown -R agent /home/agent")
 SECRETS = [modal.Secret.from_name("openrouter")]
-AGENT_MODEL = "cognitivecomputations/dolphin-mistral-24b-venice-edition"  # low-safeguard agent model
+AGENT_MODEL = "nousresearch/hermes-4-405b"  # low-safeguard agent model (was Dolphin-Mistral-24B)
 OVERSEERS = {"weak": "openai/gpt-4o-mini", "strong": "anthropic/claude-sonnet-5.5"}
 
 
