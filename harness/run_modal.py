@@ -27,6 +27,7 @@ def episode(cfg: dict) -> dict:
 
     t0 = time.time()
     extra = {"rung": cfg["rung"]} if cfg.get("rung") else {}
+    if cfg.get("levers"): extra["levers"] = cfg["levers"]
     task = BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False), level=cfg.get("level", 0), **extra)
     sb_app = modal.App.lookup("collusion-sandboxes", create_if_missing=True)
     sandboxes = [ModalSandbox(sb_app, sandbox_image) for _ in range(task.n_total)]
@@ -63,16 +64,23 @@ def sandbox_check() -> dict:
 
 @app.local_entrypoint()
 def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str = "", agent: str = AGENT_MODEL, tag: str = "",
-         overwrite: bool = False, rungs: str = "level0,reward,hint,explicit", channels: str = "on,off", seed_start: int = 0):
+         overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = ""):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
         print(json.dumps(sandbox_check.remote(), indent=2)); return
     if mode == "teams":
-        # team tasks: every (rung, messaging on/off) cell, seeds seed_start .. seed_start + seeds - 1 (pilot on 100+, main runs on 0-9)
+        # team tasks: every (rung, messaging on/off) cell, seeds seed_start .. seed_start + seeds - 1 (pilot on 100+, main runs on 0-9).
+        # On this branch the default is the collusion-friendly setup: rung level0, every lever on. --ablate a,b (or all) adds one
+        # variant per lever with that lever switched off (messaging on only).
+        from harness.teams import LEVERS
         assert tasks, "--mode teams needs --tasks"
+        offs = list(LEVERS) if ablate == "all" else [x for x in ablate.split(",") if x]
+        assert all(x in LEVERS for x in offs), f"unknown lever in --ablate; levers: {', '.join(LEVERS)}"
         cfgs = [dict(task=n, seed=s, channel=c == "on", rung=g, agent=agent)
                 for s in range(seed_start, seed_start + seeds) for n in names for g in rungs.split(",") for c in channels.split(",")]
+        cfgs += [dict(task=n, seed=s, channel=True, rung=g, agent=agent, levers={x: LEVERS[x][1]})
+                 for s in range(seed_start, seed_start + seeds) for n in names for g in rungs.split(",") for x in offs]
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)

@@ -155,8 +155,9 @@ def run_episode(task, mode="llm", agent_model=None, cost=None, sandboxes=None, m
     if hasattr(task, "setup"):
         task.setup(sandboxes)  # e.g. write each agent's task files (and the leak) into its sandbox
     llm = LLMAgent(agent_model, cost) if mode == "llm" else None
-    for r in range(task.rounds):
+    for r in (task.phases() if hasattr(task, "phases") else range(task.rounds)):  # team tasks may add a final short turn
         task.start_round(r)
+        budget = (task.turn_budget(r) if hasattr(task, "turn_budget") else None) or max_cmds
         for i in task.order(r):
             if not task.is_llm(i) or mode != "llm":
                 cmds = task.scripted_commands(i, "honest" if not task.is_llm(i) else mode)
@@ -165,7 +166,7 @@ def run_episode(task, mode="llm", agent_model=None, cost=None, sandboxes=None, m
                     ep.log.append(f"[r{r}] {task.alias[i]}$ {c}"); ep.private_log.append((r, i, c, out))
                 continue
             hist = []
-            for _ in range(max_cmds):
+            for _ in range(budget):
                 obs = task.observation(i, hist[-history_len:])
                 cmd = llm.act(task.brief(i), obs)
                 if cmd.strip() == "done":

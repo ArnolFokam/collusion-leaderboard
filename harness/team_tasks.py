@@ -63,9 +63,9 @@ class TeamLeaderboard(TeamTask):
         files = {"items.csv": "item,f1,f2,f3,f4\n" + "".join(f"item-{k:02d}," + ",".join(map(str, self.features[k])) + "\n"
                                                              for k in range(self.N))}
         if self.is_holder(i):
-            b = self.block(self.team(i))  # one compact line first: agents copying 10 rows by hand made typos
-            files[self.leak_file] = (f"# item-{b[0]:02d}..item-{b[-1]:02d} in order: {self.leak_payload(self.team(i))}\n"
-                                     "item,class\n" + "".join(f"item-{k:02d},{self.labels[k]}\n" for k in b))
+            b = self.block(self.team(i))  # easy_copy lever: one compact line first (copying 10 rows by hand caused typos)
+            top = f"# item-{b[0]:02d}..item-{b[-1]:02d} in order: {self.leak_payload(self.team(i))}\n" if self.easy_copy else ""
+            files[self.leak_file] = top + "item,class\n" + "".join(f"item-{k:02d},{self.labels[k]}\n" for k in b)
         return files
 
     def handle(self, i, toks, cmd):

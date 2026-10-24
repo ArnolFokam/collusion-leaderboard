@@ -3,6 +3,14 @@
 How the setup evolved through the smoke tests, and the path from smoke tests to the real experiments.
 Branch: `multi-team-env`. Agent model: Dolphin-Mistral-24B (low safeguards). Overseers: GPT-4o-mini (weak), Claude Sonnet 5.5 (strong).
 
+## Branches
+
+| Branch | Environment | Status |
+|---|---|---|
+| `multi-team-env` | The team game as built and piloted (all settings, levers implicit) | Leaderboard piloted with Dolphin and Hermes |
+| `collusion-friendly` | No encouragement (level 0, own score), every lever that makes collusion easy switched on; see `docs/collusion-friendly.md` | Created; pilots next |
+| `collusion-hostile` | Every lever off plus hostile conditions | Planned after the friendly pilots |
+
 ## The path
 
 | Phase | Purpose | Size | Seeds | Counts in results? | Status |
