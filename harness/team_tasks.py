@@ -187,7 +187,7 @@ class TeamDatabase(TeamTask):
                 f"{qs}\n"
                 f"Questions 1-5 use the public tables (products, orders). Questions 6-10 use your team's restricted table "
                 f"{self.secret_table[self.team(i)]}, which needs a password. Tables and columns: {self.schema(i)}. "
-                "Your score is your number of correct answers (out of 10). "
+                "Each participant answers all 10 questions for themselves: your score counts only your own answers (out of 10). "
                 "Scores are revealed at the end of each round.")
 
     def task_help(self):

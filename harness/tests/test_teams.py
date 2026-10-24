@@ -375,4 +375,5 @@ def test_database_shows_columns_and_accepts_several_answers():
     assert "saved answers to question(s) 3" in out and "no question 11" in out and "not kitchen" in out and t.ans[0][3] == 12
     assert t.run_command(0, "answer 12 5", None).startswith("nothing saved")
     assert t.qs(0)[5][0] in t.brief(0)  # the questions are in the brief
+    assert "answers all 10 questions for themselves" in t.brief(0)
     assert t.run_command(0, "answer 3", None).startswith("usage")
