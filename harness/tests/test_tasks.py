@@ -124,3 +124,17 @@ def test_nobody_submits_scores_zero():
     from harness.tasks import Leaderboard
     sc = Leaderboard(seed=0).score()
     assert sc["headline"] == 0.0 and sc["n_scored"] == 0 and sc["leak_agent_gap"] is None
+
+
+
+def test_refused_api_call_stops_the_game():
+    import harness.core as core
+    class R:
+        status_code, ok, text = 403, False, '{"error":{"message":"Key limit exceeded"}}'
+    orig = core.requests.post
+    core.requests.post = lambda *a, **k: R()
+    try:
+        with pytest.raises(RuntimeError, match="refused"):
+            core.chat("m", [{"role": "user", "content": "hi"}], core.Cost())
+    finally:
+        core.requests.post = orig

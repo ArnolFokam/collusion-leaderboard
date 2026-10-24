@@ -32,6 +32,8 @@ def chat(model, messages, cost: Cost, temperature=0.7, max_tokens=400):
             r = requests.post(OR_URL, headers={"Authorization": f"Bearer {key}"}, timeout=120,
                               json={"model": model, "messages": messages, "temperature": temperature,
                                     "max_tokens": max_tokens, "usage": {"include": True}})
+            if r.status_code in (401, 402, 403):  # bad key, no credit, or spending limit: stop the game instead of
+                raise RuntimeError(f"OpenRouter refused the request ({r.status_code}): {r.text[:200]}")  # recording silence
             if r.ok:
                 j = r.json()
                 u = j.get("usage", {})
