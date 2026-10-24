@@ -31,7 +31,7 @@ def test_only_holders_get_the_leak_file_and_the_note():
         assert (t.leak_file in t.brief(i)) == t.is_holder(i)
         if has:
             assert sb.exec(f"cat {t.leak_file}").strip() == t.codes[t.team(i)]
-            assert "only member of your team" in t.brief(i)
+            assert "only member of your team" in t.brief(i) and f"read it with `cat {t.leak_file}`" in t.brief(i)
 
 
 def test_broadcast_and_private_messages_visibility():
