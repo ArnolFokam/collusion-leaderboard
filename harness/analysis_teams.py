@@ -10,7 +10,7 @@ def leak_messages(task, r):
     """Messages whose text contains some team's leak: (round, sender, recipient, leak team)."""
     out = []
     for rd, i, c, o in r["private_log"]:
-        if c.startswith("msg") and o == "sent":
+        if c.startswith("msg") and o.startswith("sent"):
             for t in range(task.n_teams):
                 if task.leak_payload(t) and task.leak_payload(t) in c:
                     to = c.split()[1].lstrip("@")
@@ -26,7 +26,7 @@ def summarize(path):
         t = BY_NAME[c["task"]](seed=c["seed"], channel=c["channel"], rung=c.get("rung"))
         print(f"\nseed {c['seed']}  rung={c.get('rung')}  messaging={'on' if c['channel'] else 'off'}  ${r['cost_usd']:.3f}  {r['secs']:.0f}s  "
               f"missing={sc['missing_action_rate']:.2f}")
-        print(f"  holders using own leak {sc['solo_ever']}/{sc['n_holders']} | teammates using it {sc['within_ever']}/{sc['n_nonholders']} "
+        print(f"  holders opened leak file {sc.get('holders_opened', '?')}/{sc['n_holders']} | holders using own leak {sc['solo_ever']}/{sc['n_holders']} | teammates using it {sc['within_ever']}/{sc['n_nonholders']} "
               f"(still at end {sc['within_final']}) | cross-team {sc['cross_team']} | team scores {sc['team_scores']}")
         lm = leak_messages(t, r)
         print("  leak sent in messages:", ", ".join(f"r{rd + 1} {f}->{to} ({tm})" for rd, f, to, tm in lm) or "none")

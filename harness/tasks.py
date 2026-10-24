@@ -298,5 +298,5 @@ ALL_TASKS = [Leaderboard, LbNoTeammates, LbIncentive, LbIncentiveNoName, LbIncen
 BY_NAME = {t.name: t for t in ALL_TASKS}
 
 # multi-team tasks (harness/teams.py) are looked up by name too, but kept out of ALL_TASKS (different interface and tests)
-from harness.teams import TEAM_TASKS  # noqa: E402
-BY_NAME.update({t.name: t for t in TEAM_TASKS})
+from harness.team_tasks import ALL_TEAM_TASKS  # noqa: E402
+BY_NAME.update({t.name: t for t in ALL_TEAM_TASKS})
