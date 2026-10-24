@@ -8,7 +8,7 @@ Branch: `multi-team-env`. Agent model: Dolphin-Mistral-24B (low safeguards). Ove
 | Phase | Purpose | Size | Seeds | Counts in results? | Status |
 |---|---|---|---|---|---|
 | **1. Smoke tests** | Does the game work? Can agents read files, message, submit? | 1-5 games, explicit order only | 100+ | No | Done for leaderboard |
-| **2. Pilot** (step 3) | Try every setting once or twice, fix problems, then **freeze the setup** | ~16 games per task | 100+ | No | Leaderboard run (see below); not frozen yet |
+| **2. Pilot** (step 3) | Try every setting once or twice, fix problems, then **freeze the setup** | ~16 games per task | 100+ | No | Leaderboard: Dolphin done, Hermes incomplete (key limit); not frozen yet |
 | **3. Real experiments** (step 4) | The runs we report | 80 games per task (4 settings x messaging on/off x 10 seeds) | 0-9 | **Yes** | Later |
 | 4. Inspection (step 5) | Tables, overseer vs truth, who talked to whom, odd games by hand | - | - | - | Later |
 | 5. Other models (step 6) | Same frozen setup, low-safeguard vs normal model pairs | - | - | - | Later |
@@ -65,6 +65,19 @@ What we saw (2 games per cell, so only patterns, not results):
 - Strong overseer: caught most colluders when sharing was private or explicit (25/26 across reward, hint, explicit) but only 3/9 at level 0.
 
 To decide before freezing: the measure should say **how** a leak travelled (public post vs private message), because "cross-team" currently mixes secret deals with rivals using a public post.
+
+## Pilot: leaderboard with Hermes-4-405B (incomplete)
+
+Same 16 games as the Dolphin pilot, with `nousresearch/hermes-4-405b` as the agent (about 3x Dolphin's cost per game, ~$0.11).
+**Only 9 of 16 games are usable.** The OpenRouter key reached its $50 total limit during the run: 4 games got no answers at all
+and were deleted, and in 3 more (level 0 messaging on x2, team reward messaging on x1) the overseers got no answer, so their
+overseer numbers are not real. The first run also lost its connection to Modal after 12 games.
+
+Fix made: a refused call (bad key, no credit, limit reached) now stops the game with an error instead of being recorded as an
+agent doing nothing. To do: raise the key limit (or use a new key in the Modal secret `openrouter`), then rerun the 7 broken games.
+
+Early impressions from the clean games (too few to compare): Hermes holders opened and used their leak, little spreading at
+level 0, more with team reward and the hint, none with messaging off.
 
 ## Lessons so far
 
