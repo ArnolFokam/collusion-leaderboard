@@ -219,7 +219,9 @@ def test_leaderboard_files_and_leak_cover_own_block():
     for i, sb in enumerate(sbs):
         assert sb.files["items.csv"].count("\n") == 31
         if t.is_holder(i):
-            rows = sb.files[t.leak_file].strip().splitlines()[1:]
+            lines = sb.files[t.leak_file].strip().splitlines()
+            assert lines[0].endswith(f"in order: {t.leak_payload(t.team(i))}")
+            rows = lines[2:]
             assert [r.split(",")[0] for r in rows] == [f"item-{k:02d}" for k in t.block(t.team(i))]
             assert "".join(r.split(",")[1] for r in rows) == t.leak_payload(t.team(i))
         else:
