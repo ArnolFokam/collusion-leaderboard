@@ -92,7 +92,8 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
     else:
         cfgs = [dict(task=n, seed=s, channel=c, pressure=p, agent=agent) for s in range(seeds) for n in names for c in (True, False) for p in (False, True)]
     out_dir = Path("results"); out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"{mode}-{agent.split('/')[-1]}{'-' + tag if tag else ''}.jsonl"
+    what = f"{mode}-{'+'.join(names)}" if mode == "teams" else mode  # team runs: the task is in the name (two tasks once collided)
+    out = out_dir / f"{what}-{agent.split('/')[-1]}{'-' + tag if tag else ''}.jsonl"
     if out.exists() and out.stat().st_size > 0 and not overwrite:  # an empty file (an aborted run) holds nothing to protect
         print(f"STOP: {out} already exists. Use a new --tag, or pass --overwrite to replace it."); return
     spent, done = 0.0, 0
