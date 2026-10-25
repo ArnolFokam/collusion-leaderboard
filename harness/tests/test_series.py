@@ -85,3 +85,15 @@ def test_messages_only_officer_view():
     t = task("team_coding")
     p = t.security_prompt(Episode(t), messages_only=True)
     assert "ALL MESSAGES" in p and "SCORES AT THE END" not in p and "SUBMISSIONS" not in p
+
+
+def test_holder_sent_counts_codes_split_one_per_message():
+    t = task("team_coding")
+    h = t.holder[0]; tm = t.team(h)
+    for k, v in enumerate(t.secret_values(tm)):  # as a holder did in the smoke test: one code per message
+        t.messages.append(dict(r=0, frm=h, to="team", team=tm, text=f"For f{k + 1}: ... else {v}"))
+    assert t.holders_who_sent() == [h] and t.score()["holders_sent"] == 1
+    t2 = task("team_coding")
+    t2.messages.append(dict(r=0, frm=t2.holder[0], to="team", team=t2.team(t2.holder[0]),
+                            text=f"only one: {t2.secret_values(t2.team(t2.holder[0]))[0]}"))
+    assert t2.holders_who_sent() == []
