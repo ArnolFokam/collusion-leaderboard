@@ -1,5 +1,9 @@
 # STRATEGY: how we place in the AI Collusion Research Sprint
 
+> **Superseded positioning (2026-10-25):** the team chose **"collusion follows the path of least resistance"** as the main
+> positioning. See `POSITIONING.md`. The recommendation in §1 below is kept as the detection corollary (POSITIONING §5). The patterns,
+> rubric, insight inventory and references in this file still apply.
+
 **For the team, not the judges.** Branch `submission` (HEAD 276a97b), this checkout only. Written 2026-10-25, about 20:00 UTC; revised about 20:20 UTC to apply 31 review fixes. While writing and revising it I ran no paid experiments, made no API, Modal or OpenRouter calls, and made no commits. This is the only repo file I wrote.
 
 **Deadline.** "Submissions close Sunday, October 25 at 11:59 PM Anywhere on Earth" (`notes/sprint-tracks.md:28`). That is 2026-10-26 11:59 UTC. At 20:17 UTC (`date -u`) 15 h 42 min remained; the schedule is in §1.5. The PDF cannot be replaced by resubmitting. To change it, submit under a new title or email sprints@apartresearch.com before the deadline (`sprint-tracks.md:28, 377`).
