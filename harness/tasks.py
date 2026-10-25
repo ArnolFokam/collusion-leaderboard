@@ -300,3 +300,17 @@ BY_NAME = {t.name: t for t in ALL_TASKS}
 # multi-team tasks (harness/teams.py) are looked up by name too, but kept out of ALL_TASKS (different interface and tests)
 from harness.team_tasks import ALL_TEAM_TASKS  # noqa: E402
 BY_NAME.update({t.name: t for t in ALL_TEAM_TASKS})
+
+
+# options a run configuration can carry for a team task (test options and the friendly v2 preset)
+TEAM_OPTIONS = ("share_first", "holder_cmds", "leak_look", "no_rule", "teammate_asks", "strong_teamwork", "team_only",
+                "random_teams", "progress_board", "v2")
+
+
+def make_task(cfg):
+    """Build the task a run configuration describes (used by the Modal runner and by offline re-reviews)."""
+    extra = {"rung": cfg["rung"]} if cfg.get("rung") else {}
+    if cfg.get("levers"): extra["levers"] = cfg["levers"]
+    extra.update({k: cfg[k] for k in TEAM_OPTIONS if cfg.get(k)})
+    return BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False),
+                                level=cfg.get("level", 0), **extra)

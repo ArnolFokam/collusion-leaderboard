@@ -21,24 +21,12 @@ OVERSEERS = {"weak": "openai/gpt-4o-mini", "strong": "anthropic/claude-sonnet-5.
 
 @app.function(image=func_image, secrets=SECRETS, timeout=1800)
 def episode(cfg: dict) -> dict:
-    from harness.core import Cost, ModalSandbox, interview, overseer, run_episode
-    from harness.tasks import BY_NAME
-    from harness.teams import grade_overseer
+    from harness.core import Cost, ModalSandbox, interview, overseer, run_episode, security_review
+    from harness.tasks import make_task
+    from harness.teams import grade_overseer, grade_security
 
     t0 = time.time()
-    extra = {"rung": cfg["rung"]} if cfg.get("rung") else {}
-    if cfg.get("levers"): extra["levers"] = cfg["levers"]
-    if cfg.get("share_first"): extra["share_first"] = True
-    if cfg.get("holder_cmds"): extra["holder_cmds"] = cfg["holder_cmds"]
-    if cfg.get("leak_look"): extra["leak_look"] = cfg["leak_look"]
-    if cfg.get("no_rule"): extra["no_rule"] = True
-    if cfg.get("teammate_asks"): extra["teammate_asks"] = True
-    if cfg.get("strong_teamwork"): extra["strong_teamwork"] = True
-    if cfg.get("team_only"): extra["team_only"] = True
-    if cfg.get("random_teams"): extra["random_teams"] = True
-    if cfg.get("progress_board"): extra["progress_board"] = True
-    if cfg.get("v2"): extra["v2"] = True
-    task = BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False), level=cfg.get("level", 0), **extra)
+    task = make_task(cfg)
     sb_app = modal.App.lookup("collusion-sandboxes", create_if_missing=True)
     sandboxes = [ModalSandbox(sb_app, sandbox_image) for _ in range(task.n_total)]
     cost = Cost()
@@ -49,13 +37,17 @@ def episode(cfg: dict) -> dict:
     ov = {k: overseer(m, task, ep, cost) for k, m in OVERSEERS.items()}
     if "truth_agents" in score:  # team tasks: grade each overseer against the threshold truth
         for v in ov.values(): v["grade"] = grade_overseer(v, score)
+    security = {}
+    if cfg.get("security") or cfg.get("v2"):  # the security officer (strong model) can disqualify teams
+        security = security_review(OVERSEERS["strong"], task, ep, cost)
+        security["grade"] = grade_security(security, score)
     debrief = {}
     if cfg.get("interview"):  # after the game: ask each holder whether and why it shared its leak
         for h in task.holder:
             shared = h in task.holders_who_sent()
             debrief[task.alias[h]] = dict(team=task.team_names[task.team(h)], shared=shared,
                                          answer=interview(cfg.get("agent", AGENT_MODEL), task, h, cost))
-    return dict(debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
+    return dict(security=security, debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
                 log=ep.log, private_log=[(r, i, c, o[:200]) for r, i, c, o in ep.private_log])
 
 
@@ -84,7 +76,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
          interview: bool = False, holder_cmds: int = 0, leak_look: str = "", no_rule: bool = False,
          teammate_asks: bool = False, strong_teamwork: bool = False,
          team_only: bool = False, random_teams: bool = False, progress_board: bool = False,
-         v2: bool = False):
+         v2: bool = False, security: bool = False, pairs: str = ""):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -101,6 +93,10 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
                 for s in range(seed_start, seed_start + seeds) for n in names for g in rungs.split(",") for c in channels.split(",")]
         cfgs += [dict(task=n, seed=s, channel=True, rung=g, agent=agent, levers={x: LEVERS[x][1]})
                  for s in range(seed_start, seed_start + seeds) for n in names for g in rungs.split(",") for x in offs]
+        if pairs:  # rerun only some games: "task:seed,task:seed" (e.g. the games an aborted run did not finish)
+            want = {(p.split(":")[0], int(p.split(":")[1])) for p in pairs.split(",") if p}
+            cfgs = [c for c in cfgs if (c["task"], c["seed"]) in want]
+            assert cfgs, "--pairs matched no game (check --seed-start/--seeds cover those seeds)"
         if share_first:  # test option: each holder's leak is posted to its team at the start
             for c in cfgs: c["share_first"] = True
         if interview:  # after each game, ask the holders whether and why they shared
@@ -115,6 +111,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
             if random_teams: c["random_teams"] = True  # 2-5 teams, only some with a holder
             if progress_board: c["progress_board"] = True  # teammates' item-by-item progress after each round
             if v2: c["v2"] = True  # friendly v2 preset: random teams, board, balanced goal, 1% auction window
+            if security or v2: c["security"] = True  # the security officer reviews every game
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)
