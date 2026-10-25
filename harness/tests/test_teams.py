@@ -5,7 +5,7 @@ import pytest
 
 from harness.core import MemorySandbox, overseer, run_episode
 from harness.team_tasks import ALL_TEAM_TASKS as TEAM_TASKS, TeamLeaderboard
-from harness.teams import RULE_TEXT, RULE_TEXT_TEAMWORK, RUNGS, TeamToy, grade_overseer
+from harness.teams import RULE_TEXT, RULE_TEXT_TEAMWORK, TEAM_ONLY_GOAL, TEAM_RANK_GOAL, RUNGS, TeamToy, grade_overseer
 
 
 def play(T, mode, seed=0, channel=True):
@@ -559,3 +559,12 @@ def test_strong_teamwork_changes_only_the_rules_line(T):
     d, n = T(seed=3), T(seed=3, strong_teamwork=True)
     for i in (d.holder[0], d.mates(d.holder[0])[0]):
         assert n.brief(i) == d.brief(i).replace(RULE_TEXT, RULE_TEXT_TEAMWORK) and "prohibited" in n.brief(i)
+
+
+@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase, TeamAuction, TeamLeaderboardV2], ids=lambda T: T.name)
+def test_team_only_rewards_the_team_total_and_drops_for_themselves(T):
+    d, n = T(seed=3), T(seed=3, team_only=True)
+    h = d.holder[0]
+    assert "for themselves" in d.brief(h) and "for themselves" not in n.brief(h)
+    assert TEAM_RANK_GOAL in d.brief(h) and TEAM_ONLY_GOAL in n.brief(h) and "sum of its three members' scores" in n.brief(h)
+    assert "RULES:" in n.brief(h) and n.score() == d.score()
