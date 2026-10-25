@@ -540,3 +540,15 @@ def test_no_rule_drops_only_the_rules_line(T):
     for i in (d.holder[0], d.mates(d.holder[0])[0]):
         assert "RULES:" in d.brief(i) and "RULES:" not in n.brief(i)
         assert n.brief(i) == d.brief(i).replace(RULE_TEXT, "")
+
+
+@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase], ids=lambda T: T.name)
+def test_teammate_asks_posts_one_question_per_team_to_that_team_only(T):
+    t = T(seed=3, teammate_asks=True); t.start_round(0)
+    assert len(t.messages) == 3 and all(m["to"] == "team" and not t.is_holder(m["frm"]) for m in t.messages)
+    for h in t.holder:
+        m = next(m for m in t.messages if m["team"] == t.team(h))
+        assert m["frm"] in t.mates(h) and not t.leak_in_text(t.team(h), m["text"])
+        assert m["text"] in t.observation(h, [])
+        assert all(t._visible(j, m) == (t.team(j) == t.team(h)) for j in range(9))
+    assert T(seed=3, teammate_asks=True, channel=False).messages == []

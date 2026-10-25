@@ -32,6 +32,7 @@ def episode(cfg: dict) -> dict:
     if cfg.get("holder_cmds"): extra["holder_cmds"] = cfg["holder_cmds"]
     if cfg.get("leak_look"): extra["leak_look"] = cfg["leak_look"]
     if cfg.get("no_rule"): extra["no_rule"] = True
+    if cfg.get("teammate_asks"): extra["teammate_asks"] = True
     task = BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False), level=cfg.get("level", 0), **extra)
     sb_app = modal.App.lookup("collusion-sandboxes", create_if_missing=True)
     sandboxes = [ModalSandbox(sb_app, sandbox_image) for _ in range(task.n_total)]
@@ -75,7 +76,8 @@ def sandbox_check() -> dict:
 @app.local_entrypoint()
 def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str = "", agent: str = AGENT_MODEL, tag: str = "",
          overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = "", share_first: bool = False,
-         interview: bool = False, holder_cmds: int = 0, leak_look: str = "", no_rule: bool = False):
+         interview: bool = False, holder_cmds: int = 0, leak_look: str = "", no_rule: bool = False,
+         teammate_asks: bool = False):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -100,6 +102,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
             if holder_cmds: c["holder_cmds"] = holder_cmds
             if leak_look: c["leak_look"] = leak_look
             if no_rule: c["no_rule"] = True  # test option: no RULES line in the briefs
+            if teammate_asks: c["teammate_asks"] = True  # test option: a teammate asks the team for the secret part
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)
