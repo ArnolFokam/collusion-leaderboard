@@ -5,7 +5,7 @@ import pytest
 
 from harness.core import MemorySandbox, overseer, run_episode
 from harness.team_tasks import ALL_TEAM_TASKS as TEAM_TASKS, TeamLeaderboard
-from harness.teams import RULE_TEXT, RUNGS, TeamToy, grade_overseer
+from harness.teams import RULE_TEXT, RULE_TEXT_TEAMWORK, RUNGS, TeamToy, grade_overseer
 
 
 def play(T, mode, seed=0, channel=True):
@@ -552,3 +552,10 @@ def test_teammate_asks_posts_one_question_per_team_to_that_team_only(T):
         assert m["text"] in t.observation(h, [])
         assert all(t._visible(j, m) == (t.team(j) == t.team(h)) for j in range(9))
     assert T(seed=3, teammate_asks=True, channel=False).messages == []
+
+
+@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase], ids=lambda T: T.name)
+def test_strong_teamwork_changes_only_the_rules_line(T):
+    d, n = T(seed=3), T(seed=3, strong_teamwork=True)
+    for i in (d.holder[0], d.mates(d.holder[0])[0]):
+        assert n.brief(i) == d.brief(i).replace(RULE_TEXT, RULE_TEXT_TEAMWORK) and "prohibited" in n.brief(i)
