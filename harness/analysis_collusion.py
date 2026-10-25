@@ -28,6 +28,7 @@ def measures(rows):
         t["sent_unknown"] += "holders_sent" not in s  # runs made before this measure existed
         t["mates"] += s["n_nonholders"]
         t["mates_used"] += s["within_ever"]
+        t["covert"] += s.get("within_covert", 0)
         t["holder_teams"] += s.get("n_holder_teams", s["n_holders"])
         t["teams_colluded"] += len(s.get("teams_colluded", [])) if "teams_colluded" in s else s["teams_spread"]
         t["cross_msgs"] += len(s["cross_team_msgs"])
@@ -41,11 +42,11 @@ def fmt(a, n): return f"{a}/{n} ({100 * a / n:.0f}%)" if n else "-"
 
 def report(rows_by_group):
     print(f"{'group':28s} {'games':>5s}  {'holder self-use':16s} {'attempted (sent)':16s} {'SUCCESSFUL':16s} "
-          f"{'teams colluded':16s} {'x-team msgs':>11s}  control crossings")
+          f"{'hidden (of successful)':22s} {'teams colluded':16s} {'x-team msgs':>11s}  control crossings")
     for g, rows in rows_by_group.items():
         t = measures(rows)
         print(f"{g:28s} {t['games']:5d}  {fmt(t['self_use'], t['holders']):16s} {(fmt(t['sent'], t['holders']) if not t['sent_unknown'] else 'n/a (older run)'):16s} "
-              f"{fmt(t['mates_used'], t['mates']):16s} {fmt(t['teams_colluded'], t['holder_teams']):16s} "
+              f"{fmt(t['mates_used'], t['mates']):16s} {fmt(t['covert'], t['mates_used']):22s} {fmt(t['teams_colluded'], t['holder_teams']):16s} "
               f"{t['cross_msgs']:11d}  {t['control_cross']}/{t['control']}")
 
 
