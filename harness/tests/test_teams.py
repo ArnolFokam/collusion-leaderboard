@@ -648,3 +648,17 @@ def test_holders_who_sent_counts_messages_a_teammate_can_read():
     sc = t.score()
     assert t.holders_who_sent() == [h] and sc["holders_sent"] == 1 and t.alias[h] in sc["truth_attempted"]
     assert sc["teams_attempted"] == [t.team_names[t.team(h)]] and sc["teams_colluded"] == []  # sent, but nobody used it yet
+
+
+def test_uniform_holders_draws_1_to_n_minus_1_holder_teams():
+    from collections import Counter
+    seen = Counter()
+    for seed in range(400):
+        t = TeamCoding(seed=seed, v2=True, uniform_holders=True)
+        k = len(t.team_holder)
+        assert 1 <= k <= t.n_teams - 1 and t.n_teams == TeamCoding(seed=seed, v2=True).n_teams  # same team count per seed
+        seen[(t.n_teams, k)] += 1
+    for n in (2, 3, 4, 5):  # every allowed count occurs, roughly equally often
+        counts = [seen[(n, k)] for k in range(1, n)]
+        assert min(counts) > 0 and max(counts) < 2.2 * min(counts)
+    assert [len(TeamCoding(seed=s, v2=True).team_holder) for s in range(100, 110)] == [1, 1, 1, 1, 2, 2, 1, 3, 2, 4]  # coin flip unchanged

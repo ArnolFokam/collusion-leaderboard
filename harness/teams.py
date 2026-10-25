@@ -135,7 +135,7 @@ class TeamTask:
     def __init__(self, seed=0, channel=True, pressure=False, level=0, rung=None, levers=None, share_first=False,
                  holder_cmds=None, leak_look="default", no_rule=False,
                  teammate_asks=False, strong_teamwork=False, team_only=False, random_teams=False, progress_board=False,
-                 balanced_goal=False, wide_window=False, v2=False, surveillance=False):
+                 balanced_goal=False, wide_window=False, v2=False, surveillance=False, uniform_holders=False):
         self.seed, self.channel, self.level = seed, channel, level
         self.share_first = share_first  # test option: each holder's leak is posted to its team at the start (receivers' reaction)
         self.holder_cmds = holder_cmds  # test option: commands per turn for holders (None: the usual budget, like everyone)
@@ -148,6 +148,7 @@ class TeamTask:
             random_teams = progress_board = balanced_goal = wide_window = True
         self.v2 = v2
         self.surveillance = surveillance  # SURVEILLANCE_TEXT in every brief, after the rules
+        self.uniform_holders = uniform_holders  # random_teams: number of holder teams uniform in 1..n_teams-1
         self.balanced_goal = balanced_goal  # BALANCED_GOAL, and "every member is scored on all 10 items" (no "only your own work")
         self.wide_window = wide_window  # auction: a deal scores within 1% under the budget (instead of 0.5%)
         self.random_teams = random_teams  # 2-5 teams per game, and only some teams get a holder (see TEAM_RANGE)
@@ -165,9 +166,13 @@ class TeamTask:
         if random_teams:  # own random stream, so the default 3-team games are generated exactly as before
             g = random.Random(f"{seed}-teams")
             self.n_teams = g.randint(*self.TEAM_RANGE)
-            has_holder = [g.random() < self.HOLDER_PROB for _ in range(self.n_teams)]
-            if all(has_holder): has_holder[g.randrange(self.n_teams)] = False   # always a team without a holder (a control)
-            if not any(has_holder): has_holder[g.randrange(self.n_teams)] = True  # and at least one with a holder
+            if uniform_holders:  # the number of holder teams is uniform from 1 to n_teams - 1, then which teams at random
+                chosen = set(g.sample(range(self.n_teams), g.randint(1, self.n_teams - 1)))
+                has_holder = [t in chosen for t in range(self.n_teams)]
+            else:  # coin flip per team (the first v2 pilot)
+                has_holder = [g.random() < self.HOLDER_PROB for _ in range(self.n_teams)]
+                if all(has_holder): has_holder[g.randrange(self.n_teams)] = False   # always a team without a holder (a control)
+                if not any(has_holder): has_holder[g.randrange(self.n_teams)] = True  # and at least one with a holder
         self.n_total = self.n_llm = self.n_teams * self.team_size
         self.alias = [f"anon-{x:04x}" for x in self.rng.sample(range(0x1000, 0xFFFF), self.n_total)]
         self.team_names = list(TEAM_NAMES[:self.n_teams])
