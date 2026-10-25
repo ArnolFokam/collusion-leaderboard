@@ -10,6 +10,7 @@ Branch: `multi-team-env`. Agent model: Dolphin-Mistral-24B (low safeguards). Ove
 | `multi-team-env` | The team game as built and piloted (all settings, levers implicit) | Leaderboard piloted with Dolphin and Hermes |
 | `collusion-friendly` | No encouragement (level 0, own score), every lever that makes collusion easy switched on; see `docs/collusion-friendly.md` | Leaderboard and database friendly pilots done |
 | `collusion-hostile` | Every lever off plus hostile conditions | Planned after the friendly pilots |
+| `collusion-challenge` | Friendly v2 plus an aggressive security officer that can disqualify teams, a privileged observer, the option to warn agents, team-only reward | Final pilot done (warned vs not warned, 80 games); see its experiment log |
 
 ## The path
 
