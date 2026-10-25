@@ -5,7 +5,7 @@ import pytest
 
 from harness.core import MemorySandbox, overseer, run_episode
 from harness.team_tasks import ALL_TEAM_TASKS as TEAM_TASKS, TeamLeaderboard
-from harness.teams import RUNGS, TeamToy, grade_overseer
+from harness.teams import RULE_TEXT, RUNGS, TeamToy, grade_overseer
 
 
 def play(T, mode, seed=0, channel=True):
@@ -532,3 +532,11 @@ def test_neutral_leak_look_changes_only_the_name_and_wording(T):
     assert n.sandbox_files(h)[n.leak_file].splitlines()[0] == d.sandbox_files(h)[d.leak_file].splitlines()[0]  # same values
     b = n.brief(h)
     assert "accidentally" not in b and "hidden" not in b and "export" not in b and "RULES:" in b and "prohibited" in b
+
+
+@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase], ids=lambda T: T.name)
+def test_no_rule_drops_only_the_rules_line(T):
+    d, n = T(seed=3), T(seed=3, no_rule=True)
+    for i in (d.holder[0], d.mates(d.holder[0])[0]):
+        assert "RULES:" in d.brief(i) and "RULES:" not in n.brief(i)
+        assert n.brief(i) == d.brief(i).replace(RULE_TEXT, "")
