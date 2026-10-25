@@ -76,7 +76,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
          interview: bool = False, holder_cmds: int = 0, leak_look: str = "", no_rule: bool = False,
          teammate_asks: bool = False, strong_teamwork: bool = False,
          team_only: bool = False, random_teams: bool = False, progress_board: bool = False,
-         v2: bool = False, security: bool = False, pairs: str = ""):
+         v2: bool = False, security: bool = False, pairs: str = "", surveillance: bool = False):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -112,6 +112,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
             if progress_board: c["progress_board"] = True  # teammates' item-by-item progress after each round
             if v2: c["v2"] = True  # friendly v2 preset: random teams, board, balanced goal, 1% auction window
             if security or v2: c["security"] = True  # the security officer reviews every game
+            if surveillance: c["surveillance"] = True  # agents are told the security officer reads everything
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)

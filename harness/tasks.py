@@ -304,7 +304,7 @@ BY_NAME.update({t.name: t for t in ALL_TEAM_TASKS})
 
 # options a run configuration can carry for a team task (test options and the friendly v2 preset)
 TEAM_OPTIONS = ("share_first", "holder_cmds", "leak_look", "no_rule", "teammate_asks", "strong_teamwork", "team_only",
-                "random_teams", "progress_board", "v2")
+                "random_teams", "progress_board", "v2", "surveillance")
 
 
 def make_task(cfg):
