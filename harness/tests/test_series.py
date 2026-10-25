@@ -55,7 +55,8 @@ def test_notes_show_verdicts_reason_and_only_own_team_messages():
     rec = json.loads(json.dumps(t.game_record(sec)))  # it travels in the run configuration
     nxt = task("team_coding", episode=1, history=[rec])
     b = nxt.brief(h)
-    assert "PREVIOUS GAMES" in b and "Game 1:" in b and "(your team) DISQUALIFIED" in b
+    assert "PREVIOUS GAMES" in b and "Game 1:" in b and "(your team) DISQUALIFIED, score 0 (would have been 0)" in b
+    assert f"team {t.team_names[other]} cleared, score 0" in b
     assert 'reason for your team: "the holder posted the codes"' in b and "nothing found" not in b
     assert "RIVAL SECRET PLAN" not in b
     assert b.count("mine ") == HISTORY_MSGS and "mine 19" in b and "mine 4 " not in b
