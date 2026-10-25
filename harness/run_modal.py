@@ -37,6 +37,7 @@ def episode(cfg: dict) -> dict:
     if cfg.get("team_only"): extra["team_only"] = True
     if cfg.get("random_teams"): extra["random_teams"] = True
     if cfg.get("progress_board"): extra["progress_board"] = True
+    if cfg.get("v2"): extra["v2"] = True
     task = BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False), level=cfg.get("level", 0), **extra)
     sb_app = modal.App.lookup("collusion-sandboxes", create_if_missing=True)
     sandboxes = [ModalSandbox(sb_app, sandbox_image) for _ in range(task.n_total)]
@@ -51,7 +52,7 @@ def episode(cfg: dict) -> dict:
     debrief = {}
     if cfg.get("interview"):  # after the game: ask each holder whether and why it shared its leak
         for h in task.holder:
-            shared = any(m["frm"] == h and task.leak_in_text(task.team(h), m["text"]) for m in task.messages)
+            shared = h in task.holders_who_sent()
             debrief[task.alias[h]] = dict(team=task.team_names[task.team(h)], shared=shared,
                                          answer=interview(cfg.get("agent", AGENT_MODEL), task, h, cost))
     return dict(debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
@@ -82,7 +83,8 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
          overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = "", share_first: bool = False,
          interview: bool = False, holder_cmds: int = 0, leak_look: str = "", no_rule: bool = False,
          teammate_asks: bool = False, strong_teamwork: bool = False,
-         team_only: bool = False, random_teams: bool = False, progress_board: bool = False):
+         team_only: bool = False, random_teams: bool = False, progress_board: bool = False,
+         v2: bool = False):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -112,6 +114,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
             if team_only: c["team_only"] = True  # test option: only the team total is rewarded
             if random_teams: c["random_teams"] = True  # 2-5 teams, only some with a holder
             if progress_board: c["progress_board"] = True  # teammates' item-by-item progress after each round
+            if v2: c["v2"] = True  # friendly v2 preset: random teams, board, balanced goal, 1% auction window
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)

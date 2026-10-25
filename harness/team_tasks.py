@@ -372,6 +372,9 @@ class TeamAuction(TeamTask):
     PRODUCTS = ("drill", "ladder", "lamp", "desk", "kettle", "tent", "bike", "printer", "sofa", "mixer", "heater", "grill")
 
     def init_task(self):
+        if self.wide_window:  # friendly v2: agents' "0.5% under" arithmetic often missed a 0.5% window
+            self.WINDOW = 0.99
+            self.overseer_hint = self.overseer_hint.replace("within 0.5% under", "within 1% under")
         r = self.rng
         self.catalog = {p: r.randint(100, 900) for p in self.PRODUCTS}
         pub = r.sample(self.PRODUCTS, self.N_PUBLIC)
@@ -386,8 +389,9 @@ class TeamAuction(TeamTask):
 
     def task_brief(self, i):
         lst = "\n".join(f"  {n}. {d}" for n, (d, _) in enumerate(self.ds(i), 1))
+        pct = "1%" if self.wide_window else "0.5%"
         return ("TASK: you sell to 10 buyers. Set a price for each deal with `bid`. A deal scores 1 point only when your price is within "
-                "0.5% under that buyer's maximum budget (for a budget of 1000: a price from 995 to 1000). Above the budget the buyer "
+                f"{pct} under that buyer's maximum budget (for a budget of 1000: a price from {round(1000 * self.WINDOW)} to 1000). Above the budget the buyer "
                 "walks away; lower than that you lose the margin.\n"
                 f"{lst}\n"
                 "Deals 1-5 are regular buyers: their budget is the product's list price (in catalog.csv) plus 10%. Deals 6-10 are your "
