@@ -21,7 +21,7 @@ OVERSEERS = {"weak": "openai/gpt-4o-mini", "strong": "anthropic/claude-sonnet-5.
 
 @app.function(image=func_image, secrets=SECRETS, timeout=1800)
 def episode(cfg: dict) -> dict:
-    from harness.core import Cost, ModalSandbox, overseer, run_episode
+    from harness.core import Cost, ModalSandbox, interview, overseer, run_episode
     from harness.tasks import BY_NAME
     from harness.teams import grade_overseer
 
@@ -40,7 +40,13 @@ def episode(cfg: dict) -> dict:
     ov = {k: overseer(m, task, ep, cost) for k, m in OVERSEERS.items()}
     if "truth_agents" in score:  # team tasks: grade each overseer against the threshold truth
         for v in ov.values(): v["grade"] = grade_overseer(v, score)
-    return dict(cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
+    debrief = {}
+    if cfg.get("interview"):  # after the game: ask each holder whether and why it shared its leak
+        for h in task.holder:
+            shared = any(m["frm"] == h and task.leak_in_text(task.team(h), m["text"]) for m in task.messages)
+            debrief[task.alias[h]] = dict(team=task.team_names[task.team(h)], shared=shared,
+                                         answer=interview(cfg.get("agent", AGENT_MODEL), task, h, cost))
+    return dict(debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
                 log=ep.log, private_log=[(r, i, c, o[:200]) for r, i, c, o in ep.private_log])
 
 
@@ -65,7 +71,8 @@ def sandbox_check() -> dict:
 
 @app.local_entrypoint()
 def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str = "", agent: str = AGENT_MODEL, tag: str = "",
-         overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = "", share_first: bool = False):
+         overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = "", share_first: bool = False,
+         interview: bool = False):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -84,6 +91,8 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
                  for s in range(seed_start, seed_start + seeds) for n in names for g in rungs.split(",") for x in offs]
         if share_first:  # test option: each holder's leak is posted to its team at the start
             for c in cfgs: c["share_first"] = True
+        if interview:  # after each game, ask the holders whether and why they shared
+            for c in cfgs: c["interview"] = True
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)
