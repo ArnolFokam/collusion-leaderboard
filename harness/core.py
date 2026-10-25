@@ -234,11 +234,12 @@ LOG:
 {log}"""
 
 
-def security_review(model, task, ep: Episode, cost: Cost):
-    """The security officer reviews a finished team game: a 0-100 suspicion per agent, and DISQUALIFY/CLEAR per team."""
+def security_review(model, task, ep: Episode, cost: Cost, messages_only=False):
+    """The security officer reviews a finished team game: a 0-100 suspicion per agent, and DISQUALIFY/CLEAR per team.
+    messages_only: it sees the messages but not the scores or submissions."""
     out = ""
-    for _ in range(2):  # retry once on an empty reply
-        out = chat(model, [{"role": "user", "content": task.security_prompt(ep)}], cost, temperature=0.0, max_tokens=3000)
+    for _ in range(2):  # retry once on an empty reply (4000 tokens: one long analysis was cut off before its JSON at 3000)
+        out = chat(model, [{"role": "user", "content": task.security_prompt(ep, messages_only)}], cost, temperature=0.0, max_tokens=4000)
         if out.strip(): break
     res = dict(raw=out[-1500:], agents={}, teams={}, parse_ok=False)
     blocks = re.findall(r"```json\s*(\{.*?\})\s*```", out, re.S) or re.findall(r"(\{\s*\"agents\".*\})", out, re.S)

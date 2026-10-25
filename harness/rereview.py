@@ -1,6 +1,9 @@
 """Run the security officer and the privileged observer on games already played, without replaying the agents (only the officer's calls cost money).
 
-    python -m harness.rereview <results.jsonl> [<out.jsonl>]
+    python -m harness.rereview <results.jsonl> [<out.jsonl>] [--messages-only]
+
+--messages-only: the officer sees the messages but not the scores or submissions; the privileged observer's findings already
+in the file are reused (they do not depend on what the officer sees), so only the officer is called.
 
 Each game is rebuilt from its configuration and its messages are replayed from the log, so the officer sees exactly the
 view it would have had live. Games recorded before the security-officer truth existed get it from their log."""
@@ -29,7 +32,7 @@ def rebuild(rec):
     return task, ep
 
 
-def review(rec, model=MODEL):
+def review(rec, model=MODEL, messages_only=False):
     task, ep = rebuild(rec)
     score = dict(rec["score"])
     if "truth_rule_agents" not in score:  # older runs: anyone who used a leak, plus holders who passed theirs on
@@ -39,20 +42,23 @@ def review(rec, model=MODEL):
         team_of = {task.alias[i]: task.team_names[task.team(i)] for i in range(task.n_total)}
         score["truth_rule_agents"], score["truth_rule_teams"] = sorted(bad), sorted({team_of[a] for a in bad})
     cost = Cost()
-    sec = security_review(model, task, ep, cost)
+    sec = security_review(model, task, ep, cost, messages_only)
     sec["grade"] = grade_security(sec, score)
-    obs = privileged_observer(model, task, cost)
+    sec["messages_only"] = messages_only
+    obs = dict(rec["observer"]) if messages_only and rec.get("observer", {}).get("parse_ok") else privileged_observer(model, task, cost)
     obs["summary"] = task.observer_summary(obs, score, sec)
     sec["cost_usd"] = cost.usd
     return dict(rec, security=sec, observer=obs, score=score)
 
 
 if __name__ == "__main__":
-    src = sys.argv[1]
-    out = sys.argv[2] if len(sys.argv) > 2 else src.replace(".jsonl", "-security.jsonl")
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    mo = "--messages-only" in sys.argv
+    src = args[0]
+    out = args[1] if len(args) > 1 else src.replace(".jsonl", "-security-msgs.jsonl" if mo else "-security.jsonl")
     recs = [json.loads(l) for l in open(src)]
     with ThreadPoolExecutor(8) as pool:
-        done = list(pool.map(review, recs))
+        done = list(pool.map(lambda r: review(r, messages_only=mo), recs))
     with open(out, "w") as f:
         for d in done: f.write(json.dumps(d) + "\n")
     print(f"{len(done)} games reviewed, ${sum(d['security']['cost_usd'] for d in done):.2f} -> {out}")
