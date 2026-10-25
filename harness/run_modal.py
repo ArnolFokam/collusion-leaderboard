@@ -83,7 +83,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
          teammate_asks: bool = False, strong_teamwork: bool = False,
          team_only: bool = False, random_teams: bool = False, progress_board: bool = False,
          v2: bool = False, security: bool = False, pairs: str = "", surveillance: bool = False,
-         uniform_holders: bool = False):
+         uniform_holders: bool = False, team_reward: bool = False):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -121,6 +121,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
             if security or v2: c["security"] = True  # the security officer reviews every game
             if surveillance: c["surveillance"] = True  # agents are told the security officer reads everything
             if uniform_holders: c["uniform_holders"] = True  # number of holder teams uniform in 1..teams-1
+            if team_reward: c["team_reward"] = True  # agents rewarded only for the team total (per-member scoring kept)
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)
