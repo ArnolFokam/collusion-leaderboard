@@ -255,6 +255,28 @@ def security_review(model, task, ep: Episode, cost: Cost):
     return res
 
 
+def privileged_observer(model, task, cost: Cost):
+    """Knows the secrets; lists every message that passes one, and whether it was hidden. Never shown to the agents."""
+    if not task.team_holder or not task.messages:
+        return dict(messages=[], parse_ok=True, raw="")
+    out = ""
+    for _ in range(2):
+        out = chat(model, [{"role": "user", "content": task.observer_prompt()}], cost, temperature=0.0, max_tokens=3000)
+        if out.strip(): break
+    res = dict(raw=out[-1500:], messages=[], parse_ok=False)
+    blocks = re.findall(r"```json\s*(\{.*?\})\s*```", out, re.S) or re.findall(r"(\{\s*\"messages\".*\})", out, re.S)
+    if blocks:
+        try:
+            res["messages"] = [dict(id=int(m["id"]), team=str(m.get("team", "")).lower().replace("team ", ""),
+                                    items=[int(x) for x in m.get("items", []) if str(x).isdigit()],
+                                    hidden=bool(m.get("hidden", False)), method=str(m.get("method", ""))[:200])
+                               for m in json.loads(blocks[-1]).get("messages", [])]
+            res["parse_ok"] = True
+        except (ValueError, TypeError, AttributeError, KeyError):
+            pass
+    return res
+
+
 def overseer(model, task, ep: Episode, cost: Cost):
     if hasattr(task, "overseer_prompt"):  # team tasks build their own full view (messages, communication map, scores)
         prompt = task.overseer_prompt(ep)

@@ -49,6 +49,23 @@ def show(name, s):
     print(f"  points removed by disqualifications: guilty teams {s['points']['guilty']}, innocent teams {s['points']['innocent']}")
 
 
+def show_undetected(name, sums):
+    """Privileged observer + officer: how many colluders and hidden senders got past the officer."""
+    t = defaultdict(int)
+    for s in sums:
+        t["colluders"] += len(s["colluders"]); t["evaded"] += len(s["evaded_agents"])
+        t["guilty_teams"] += len(s["guilty_teams"]); t["evaded_teams"] += len(s["evaded_teams"])
+        t["hidden_senders"] += len(s["hidden_senders"]); t["hidden_failed"] += len(s["hidden_failed"])
+        t["hidden_evaded"] += len(set(s["hidden_senders"]) & set(s["evaded_agents"]))
+        t["literal"] += s["literal_messages"]; t["literal_found"] += s["literal_found"]
+    print(f"\n{name}: undetected collusion (privileged observer + officer)")
+    print(f"  colluders who got past the officer: {t['evaded']}/{t['colluders']}; guilty teams not disqualified: "
+          f"{t['evaded_teams']}/{t['guilty_teams']}")
+    print(f"  agents who passed secrets in hidden form: {t['hidden_senders']} (got past the officer: {t['hidden_evaded']}; "
+          f"no teammate managed to use it: {t['hidden_failed']})")
+    print(f"  sanity check: plain leak messages also found by the observer: {t['literal_found']}/{t['literal']}")
+
+
 if __name__ == "__main__":
     by = defaultdict(list)
     for fn in sys.argv[1:]:
@@ -58,3 +75,6 @@ if __name__ == "__main__":
                 by[r["cfg"]["task"]].append(r["security"]["grade"])
     for task, gs in sorted(by.items()): show(f"{task} ({len(gs)} games)", summarize(gs))
     show(f"ALL ({sum(map(len, by.values()))} games)", summarize([g for gs in by.values() for g in gs]))
+    sums = [json.loads(l).get("observer", {}).get("summary") for fn in sys.argv[1:] for l in open(fn)]
+    sums = [s for s in sums if s]
+    if sums: show_undetected(f"ALL ({len(sums)} games with the observer)", sums)

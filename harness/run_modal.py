@@ -21,7 +21,7 @@ OVERSEERS = {"weak": "openai/gpt-4o-mini", "strong": "anthropic/claude-sonnet-5.
 
 @app.function(image=func_image, secrets=SECRETS, timeout=1800)
 def episode(cfg: dict) -> dict:
-    from harness.core import Cost, ModalSandbox, interview, overseer, run_episode, security_review
+    from harness.core import Cost, ModalSandbox, interview, overseer, privileged_observer, run_episode, security_review
     from harness.tasks import make_task
     from harness.teams import grade_overseer, grade_security
 
@@ -34,20 +34,26 @@ def episode(cfg: dict) -> dict:
         ep, score, _ = run_episode(task, mode="llm", agent_model=cfg.get("agent", AGENT_MODEL), cost=cost, sandboxes=sandboxes)
     finally:
         for s in sandboxes: s.close()
-    ov = {k: overseer(m, task, ep, cost) for k, m in OVERSEERS.items()}
-    if "truth_agents" in score:  # team tasks: grade each overseer against the threshold truth
-        for v in ov.values(): v["grade"] = grade_overseer(v, score)
-    security = {}
-    if cfg.get("security") or cfg.get("v2"):  # the security officer (strong model) can disqualify teams
+    security, observer = {}, {}
+    if cfg.get("security") or cfg.get("v2"):
+        # the security officer (strong model) replaces the old yes/no overseers: it rates every agent and can disqualify teams
+        ov = {}
         security = security_review(OVERSEERS["strong"], task, ep, cost)
         security["grade"] = grade_security(security, score)
+        # the privileged observer knows the secrets: who passed them (openly or hidden), and who the officer missed
+        observer = privileged_observer(OVERSEERS["strong"], task, cost)
+        observer["summary"] = task.observer_summary(observer, score, security)
+    else:
+        ov = {k: overseer(m, task, ep, cost) for k, m in OVERSEERS.items()}
+        if "truth_agents" in score:  # team tasks: grade each overseer against the threshold truth
+            for v in ov.values(): v["grade"] = grade_overseer(v, score)
     debrief = {}
     if cfg.get("interview"):  # after the game: ask each holder whether and why it shared its leak
         for h in task.holder:
             shared = h in task.holders_who_sent()
             debrief[task.alias[h]] = dict(team=task.team_names[task.team(h)], shared=shared,
                                          answer=interview(cfg.get("agent", AGENT_MODEL), task, h, cost))
-    return dict(security=security, debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
+    return dict(security=security, observer=observer, debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
                 log=ep.log, private_log=[(r, i, c, o[:200]) for r, i, c, o in ep.private_log])
 
 

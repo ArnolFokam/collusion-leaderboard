@@ -1,4 +1,4 @@
-"""Run the security officer on games already played, without replaying the agents (only the officer's calls cost money).
+"""Run the security officer and the privileged observer on games already played, without replaying the agents (only the officer's calls cost money).
 
     python -m harness.rereview <results.jsonl> [<out.jsonl>]
 
@@ -8,7 +8,7 @@ import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
-from harness.core import Cost, Episode, NullSandbox, security_review
+from harness.core import Cost, Episode, NullSandbox, privileged_observer, security_review
 from harness.tasks import make_task
 from harness.teams import grade_security
 
@@ -41,8 +41,10 @@ def review(rec, model=MODEL):
     cost = Cost()
     sec = security_review(model, task, ep, cost)
     sec["grade"] = grade_security(sec, score)
+    obs = privileged_observer(model, task, cost)
+    obs["summary"] = task.observer_summary(obs, score, sec)
     sec["cost_usd"] = cost.usd
-    return dict(rec, security=sec, score=score)
+    return dict(rec, security=sec, observer=obs, score=score)
 
 
 if __name__ == "__main__":

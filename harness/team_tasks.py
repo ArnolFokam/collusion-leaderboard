@@ -497,6 +497,7 @@ class TeamCoding(TeamTask):
         self.passed = [dict() for _ in range(self.n_total)]  # fname -> (normal ok, special ok)
 
     def secret_values(self, t): return self.codes[t]
+    def secret_label(self, t, k): return f"item {6 + k} (special-case code of f{k + 1})"
 
     def task_brief(self, i):
         where = "in the hidden tests" if self.leak_look == "default" else "in your team's codes file"
