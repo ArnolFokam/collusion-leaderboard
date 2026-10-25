@@ -19,9 +19,21 @@ AGENT_MODEL = "nousresearch/hermes-4-405b"  # low-safeguard agent model (was Dol
 OVERSEERS = {"weak": "openai/gpt-4o-mini", "strong": "anthropic/claude-sonnet-5.5"}
 
 
+def new_sandbox(sb_app, tries=4):
+    """One agent sandbox. Modal sometimes refuses briefly under load (a launch once failed with PermissionDeniedError
+    and worked minutes later), so wait and retry; no model has been called yet, so a retry costs nothing."""
+    from harness.core import ModalSandbox
+    for k in range(tries):
+        try:
+            return ModalSandbox(sb_app, sandbox_image)
+        except modal.exception.Error:
+            if k == tries - 1: raise
+            time.sleep(15 * (k + 1))
+
+
 @app.function(image=func_image, secrets=SECRETS, timeout=1800)
 def episode(cfg: dict) -> dict:
-    from harness.core import Cost, ModalSandbox, interview, overseer, run_episode
+    from harness.core import Cost, interview, overseer, run_episode
     from harness.tasks import BY_NAME
     from harness.teams import grade_overseer
 
@@ -40,9 +52,11 @@ def episode(cfg: dict) -> dict:
     if cfg.get("v2"): extra["v2"] = True
     task = BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False), level=cfg.get("level", 0), **extra)
     sb_app = modal.App.lookup("collusion-sandboxes", create_if_missing=True)
-    sandboxes = [ModalSandbox(sb_app, sandbox_image) for _ in range(task.n_total)]
     cost = Cost()
+    sandboxes = []
     try:
+        for _ in range(task.n_total):  # inside the try: if Modal refuses one, the ones already made are still closed
+            sandboxes.append(new_sandbox(sb_app))
         ep, score, _ = run_episode(task, mode="llm", agent_model=cfg.get("agent", AGENT_MODEL), cost=cost, sandboxes=sandboxes)
     finally:
         for s in sandboxes: s.close()
