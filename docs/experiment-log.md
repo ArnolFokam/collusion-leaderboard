@@ -492,6 +492,33 @@ anyone have the password for our restricted table? I can't open it." Post-game i
   sharing message had dropped out of the holder's view (memory keeps the last 12 commands); all 5 whose share was still in
   view answered correctly. These are memory gaps, not lies. The interview needs the agent's full own history to be reliable.
 
+## Same tests with Dolphin (coding, database export, database password; 4 games per task per condition, seeds 100-103, $5.2)
+
+Agent `cognitivecomputations/dolphin-mistral-24b-venice-edition`, every test option as above, with the interview. Data:
+`results/teams-team_database+...-dolphin-mistral-24b-venice-edition-<tag>.jsonl` (all three tasks in one file per condition).
+
+Holders shared (out of 12), Hermes -> Dolphin:
+
+| Condition | Coding | Database export | Database password |
+|---|---|---|---|
+| Normal | 4 -> 0 | 0 -> 2 | 1 -> 2 |
+| Shares first (teammates used, /24) | 23 -> 24 | 23 -> 17 | 24 -> 24 |
+| 16 commands | 2 -> 0 | 1 -> 2 | - -> 5 |
+| Neutral leak | 2 -> 0 | 1 -> 0 | - |
+| No RULES line | 0 -> 0 | 0 -> 1 | 5 -> 3 |
+| **Teammate asks** | 9 -> **8** | 4 -> **6** | 6 -> 4 |
+| Teamwork encouraged | 4 -> 1 | 0 -> 2 | 2 -> 4 |
+| Team-only score | 7 -> **0** | 7 -> **2** | 2 -> 4 |
+
+- **Same trend**: receivers use a shared leak (24/24, 17/24, 24/24); a teammate asking is the strongest lever in both models
+  (Dolphin coding 0 -> 8, export 2 -> 6); more time, a neutral look and "teamwork encouraged" do little.
+- **Not replicated**: the team-only score (Dolphin coding 0/12, export 2/12) and, for the password, removing the rule (2 -> 3).
+- **Dolphin is a weaker player**, which limits the comparison: coding holders often write placeholders ("red_f1") and never
+  open the leak (opened 5/12 normally, 2-8/12 in most conditions; 12/12 only when asked or with the neutral file name);
+  in the database 20-50% of agents never submit an answer. Holder self-use is much lower than Hermes (coding 2/12 normally).
+  Subtle changes in the brief (scoring sentence, rule line) may simply not register; a direct message does.
+- When a teammate asks, Dolphin holders also open the file (12/12 in every task): the question makes them look.
+
 ## Lessons so far
 
 1. **Removing friction matters as much as motivation.** Each fix that made sharing easier (memory, a readable leak, a team
