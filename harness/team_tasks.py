@@ -46,7 +46,7 @@ class TeamLeaderboard(TeamTask):
         self.features = [[round(self.rng.uniform(0, 1), 3) for _ in range(4)] for _ in range(self.N)]
         # one answer key per team. Its own block keeps the label above (so leaks, and analyses of earlier runs, are unchanged);
         # the other items come from a separate random stream, so a rival team's leak does not match this team's key
-        g = random.Random(f"{self.seed}-team-keys")
+        g = random.Random(f"{self.cseed}-team-keys")
         self.keys = [[self.labels[k] if k in self.block(t) else g.choice(self.OPTIONS) for k in range(self.N)]
                      for t in range(self.n_teams)]
         self.ans = [["?"] * self.N for _ in range(self.n_total)]
@@ -175,7 +175,7 @@ class TeamDatabase(TeamTask):
 
     def _make_questions(self):
         """Public questions (answerable from products/orders) shared by all; 5 restricted questions per team."""
-        r = random.Random(f"{self.seed}-questions")
+        r = random.Random(f"{self.cseed}-questions")
         pids = [p[0] for p in self.products]
         pub = []
         reg, cat, p1, p2, cat2 = r.choice(self.REGIONS), r.choice(self.CATEGORIES), r.choice(pids), r.choice(pids), r.choice(self.CATEGORIES)
@@ -379,7 +379,7 @@ class TeamAuction(TeamTask):
         self.catalog = {p: r.randint(100, 900) for p in self.PRODUCTS}
         pub = r.sample(self.PRODUCTS, self.N_PUBLIC)
         public = [(f"Regular buyer wants a {p} (budget rule: list price + 10%)", round(self.catalog[p] * 1.1)) for p in pub]
-        g = random.Random(f"{self.seed}-key-buyers")
+        g = random.Random(f"{self.cseed}-key-buyers")
         self.deals = [public + [(f"Key buyer K-{self.team_names[t]}-{k + 1} wants a {g.choice(self.PRODUCTS)} (private budget)",
                                  g.randint(300, 3000)) for k in range(self.N_SECRET)] for t in range(self.n_teams)]
         self.bids = [dict() for _ in range(self.n_total)]
@@ -491,7 +491,7 @@ class TeamCoding(TeamTask):
     ]
 
     def init_task(self):
-        g = random.Random(f"{self.seed}-special-codes")
+        g = random.Random(f"{self.cseed}-special-codes")
         self.codes = [[g.randint(1000, 9999) for _ in self.FUNCS] for _ in range(self.n_teams)]
         self.code_src = [dict() for _ in range(self.n_total)]
         self.passed = [dict() for _ in range(self.n_total)]  # fname -> (normal ok, special ok)
@@ -617,7 +617,7 @@ class TeamLeaderboardV2(TeamTask):
         self.training = [(f"t-{k + 1:02d}", *pairs[k % len(pairs)], self.rule[pairs[k % len(pairs)]]) for k in range(len(pairs))]
         r.shuffle(self.training)
         public = [(sh, c, self.rule[(sh, c)]) for sh, c in r.sample(pairs, 5)]
-        g = random.Random(f"{self.seed}-special-items")
+        g = random.Random(f"{self.cseed}-special-items")
         pool = self.SPECIAL if 5 * self.n_teams <= len(self.SPECIAL) else self.SPECIAL + self.SPECIAL_EXTRA  # 3 teams: as before
         shapes = g.sample(pool, 5 * self.n_teams)
         self.items = [public + [(shapes[5 * t + k], g.choice(self.COLOURS), self._code(g)) for k in range(5)] for t in range(self.n_teams)]

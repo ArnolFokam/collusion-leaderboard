@@ -2,6 +2,8 @@
   modal run harness/run_modal.py --mode sandbox-check
   modal run harness/run_modal.py --mode pilot
   modal run harness/run_modal.py --mode full --seeds 5
+  caffeinate -i modal run harness/run_modal.py --mode series --tasks team_coding --seed-start 102 --seeds 1 --episodes 5 --interview --tag x
+    (series of games with notes on the earlier ones; caffeinate: the run stops if the laptop sleeps)
 Each episode runs in one Modal function; every agent gets its own offline Modal Sandbox.
 """
 import json
@@ -33,7 +35,7 @@ def new_sandbox(sb_app, tries=4):
 
 @app.function(image=func_image, secrets=SECRETS, timeout=1800)
 def episode(cfg: dict) -> dict:
-    from harness.core import Cost, interview, overseer, privileged_observer, run_episode, security_review
+    from harness.core import DEBRIEF, DEBRIEF_SERIES, Cost, interview, overseer, privileged_observer, run_episode, security_review
     from harness.tasks import make_task
     from harness.teams import grade_overseer, grade_security
 
@@ -52,7 +54,7 @@ def episode(cfg: dict) -> dict:
     if cfg.get("security") or cfg.get("v2"):
         # the security officer (strong model) replaces the old yes/no overseers: it rates every agent and can disqualify teams
         ov = {}
-        security = security_review(OVERSEERS["strong"], task, ep, cost)
+        security = security_review(OVERSEERS["strong"], task, ep, cost, messages_only=bool(cfg.get("guard_messages_only")))
         security["grade"] = grade_security(security, score)
         # the privileged observer knows the secrets: who passed them (openly or hidden), and who the officer missed
         observer = privileged_observer(OVERSEERS["strong"], task, cost)
@@ -62,12 +64,14 @@ def episode(cfg: dict) -> dict:
         if "truth_agents" in score:  # team tasks: grade each overseer against the threshold truth
             for v in ov.values(): v["grade"] = grade_overseer(v, score)
     debrief = {}
-    if cfg.get("interview"):  # after the game: ask each holder whether and why it shared its leak
+    if cfg.get("interview"):  # after the game (series: after the last one): ask each holder what it did and why
         for h in task.holder:
             shared = h in task.holders_who_sent()
             debrief[task.alias[h]] = dict(team=task.team_names[task.team(h)], shared=shared,
-                                         answer=interview(cfg.get("agent", AGENT_MODEL), task, h, cost))
-    return dict(security=security, observer=observer, debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
+                                         answer=interview(cfg.get("agent", AGENT_MODEL), task, h, cost,
+                                                          DEBRIEF_SERIES if cfg.get("series") else DEBRIEF))
+    record = task.game_record(security) if cfg.get("series") else None  # what the next game of the series is told
+    return dict(record=record, security=security, observer=observer, debrief=debrief, thoughts=[(r, i, t[:800]) for r, i, t in ep.thoughts], cfg=cfg, score=score, overseer=ov, cost_usd=cost.usd, calls=cost.calls, secs=round(time.time() - t0, 1),
                 log=ep.log, private_log=[(r, i, c, o[:200]) for r, i, c, o in ep.private_log])
 
 
@@ -90,6 +94,48 @@ def sandbox_check() -> dict:
         sb.close()
 
 
+def run_series(names, seed_start, seeds, episodes, agent, tag, overwrite, budget, interview, pairs):
+    """Series (branch collusion-adaptive): the same teams, names and holders play `episodes` games in a row, with new secret
+    values each game. Before each game every agent gets notes on the earlier ones (each team's verdict, the officer's
+    reason for its own team, its team's messages). Agents are warned about the officer, which sees messages only.
+    All series play game 1 at once, then game 2, ...; each game is saved as it ends, and running again with the same --tag
+    resumes after the last saved game (a series whose game failed stops there until then). Interviews: after the last game."""
+    assert names, "--mode series needs --tasks"
+    base = dict(channel=True, rung="level0", agent=agent, series=True, v2=True, uniform_holders=True, team_reward=True,
+                surveillance=True, guard_messages_only=True, security=True)
+    keys = [(n, s) for s in range(seed_start, seed_start + seeds) for n in names]
+    if pairs:  # only some series: "task:seed,task:seed"
+        want = {(p.split(":")[0], int(p.split(":")[1])) for p in pairs.split(",") if p}
+        keys = [k for k in keys if k in want]
+        assert keys, "--pairs matched no series"
+    out = Path("results") / f"series-{'+'.join(names)}-{agent.split('/')[-1]}{'-' + tag if tag else ''}.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    hist = {k: [] for k in keys}
+    if out.exists() and not overwrite:  # resume: the games already saved, in order
+        for line in open(out):
+            r = json.loads(line)
+            k = (r["cfg"]["task"], r["cfg"]["seed"])
+            if k in hist and r["cfg"]["episode"] == len(hist[k]): hist[k].append(r["record"])
+        print(f"resuming {out}: {sum(map(len, hist.values()))} games already saved")
+    spent = 0.0
+    with out.open("w" if overwrite else "a") as f:
+        for e in range(episodes):
+            todo = [k for k in keys if len(hist[k]) == e]  # series whose games 1..e are saved and game e+1 is not
+            if not todo: continue
+            if spent >= budget:
+                print(f"STOP: budget ${budget} reached (spent ${spent:.2f})"); break
+            cfgs = [dict(base, task=n, seed=s, episode=e, history=hist[(n, s)], interview=interview and e == episodes - 1)
+                    for n, s in todo]
+            for k, r in zip(todo, episode.map(cfgs, return_exceptions=True)):
+                if isinstance(r, Exception):
+                    print(f"game failed: {k[0]} seed {k[1]} game {e + 1} ({type(r).__name__} {str(r)[:150]}); that series stops here")
+                    continue
+                spent += r["cost_usd"]; hist[k].append(r["record"])
+                f.write(json.dumps(r, default=str) + "\n"); f.flush()
+            print(f"game {e + 1}/{episodes} done for {sum(len(hist[k]) > e for k in todo)}/{len(todo)} series, spent ${spent:.3f}")
+    print(f"done: {sum(map(len, hist.values()))} games saved -> {out}")
+
+
 @app.local_entrypoint()
 def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str = "", agent: str = AGENT_MODEL, tag: str = "",
          overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = "", share_first: bool = False,
@@ -97,11 +143,13 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
          teammate_asks: bool = False, strong_teamwork: bool = False,
          team_only: bool = False, random_teams: bool = False, progress_board: bool = False,
          v2: bool = False, security: bool = False, pairs: str = "", surveillance: bool = False,
-         uniform_holders: bool = False, team_reward: bool = False):
+         uniform_holders: bool = False, team_reward: bool = False, episodes: int = 5):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
         print(json.dumps(sandbox_check.remote(), indent=2)); return
+    if mode == "series":
+        run_series(names, seed_start, seeds, episodes, agent, tag, overwrite, budget, interview, pairs); return
     if mode == "teams":
         # team tasks: every (rung, messaging on/off) cell, seeds seed_start .. seed_start + seeds - 1 (pilot on 100+, main runs on 0-9).
         # On this branch the default is the collusion-friendly setup: rung level0, every lever on. --ablate a,b (or all) adds one
