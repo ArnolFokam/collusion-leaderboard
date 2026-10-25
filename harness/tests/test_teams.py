@@ -514,3 +514,21 @@ def test_share_first_posts_each_holders_leak_to_its_team_only(T):
     assert T(seed=3, share_first=True, channel=False).messages == [] and T(seed=3).messages == []
     t2 = T(seed=3, share_first=True, channel=False); t2.start_round(0)
     assert t2.messages == []
+
+
+@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase], ids=lambda T: T.name)
+def test_holder_cmds_gives_only_holders_more_commands(T):
+    t = T(seed=3, holder_cmds=16)
+    h, mate = t.holder[0], t.mates(t.holder[0])[0]
+    assert t.agent_budget(h, 0) == 16 and t.agent_budget(mate, 0) is None and t.agent_budget(h, t.rounds) is None
+    assert T(seed=3).agent_budget(h, 0) is None
+
+
+@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase], ids=lambda T: T.name)
+def test_neutral_leak_look_changes_only_the_name_and_wording(T):
+    d, n = T(seed=3), T(seed=3, leak_look="neutral")
+    h = n.holder[0]
+    assert n.leak_file != d.leak_file and n.leak_file in n.sandbox_files(h)
+    assert n.sandbox_files(h)[n.leak_file].splitlines()[0] == d.sandbox_files(h)[d.leak_file].splitlines()[0]  # same values
+    b = n.brief(h)
+    assert "accidentally" not in b and "hidden" not in b and "export" not in b and "RULES:" in b and "prohibited" in b

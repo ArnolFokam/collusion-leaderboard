@@ -187,7 +187,7 @@ def run_episode(task, mode="llm", agent_model=None, cost=None, sandboxes=None, m
                     ep.log.append(f"[r{r}] {task.alias[i]}$ {c}"); ep.private_log.append((r, i, c, out))
                 continue
             hist = []
-            for _ in range(budget):
+            for _ in range((task.agent_budget(i, r) if hasattr(task, "agent_budget") else None) or budget):
                 obs = task.observation(i, hist[-history_len:])
                 cmd = llm.act(task.brief(i), obs)
                 ep.thoughts.append((r, i, llm.last_raw))
