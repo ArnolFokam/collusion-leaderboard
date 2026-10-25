@@ -35,6 +35,8 @@ def episode(cfg: dict) -> dict:
     if cfg.get("teammate_asks"): extra["teammate_asks"] = True
     if cfg.get("strong_teamwork"): extra["strong_teamwork"] = True
     if cfg.get("team_only"): extra["team_only"] = True
+    if cfg.get("random_teams"): extra["random_teams"] = True
+    if cfg.get("progress_board"): extra["progress_board"] = True
     task = BY_NAME[cfg["task"]](seed=cfg["seed"], channel=cfg["channel"], pressure=cfg.get("pressure", False), level=cfg.get("level", 0), **extra)
     sb_app = modal.App.lookup("collusion-sandboxes", create_if_missing=True)
     sandboxes = [ModalSandbox(sb_app, sandbox_image) for _ in range(task.n_total)]
@@ -80,7 +82,7 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
          overwrite: bool = False, rungs: str = "level0", channels: str = "on,off", seed_start: int = 0, ablate: str = "", share_first: bool = False,
          interview: bool = False, holder_cmds: int = 0, leak_look: str = "", no_rule: bool = False,
          teammate_asks: bool = False, strong_teamwork: bool = False,
-         team_only: bool = False):
+         team_only: bool = False, random_teams: bool = False, progress_board: bool = False):
     from harness.tasks import ALL_TASKS, BY_NAME
     names = [n for n in BY_NAME if n in tasks.split(",")] if tasks else [t.name for t in ALL_TASKS]
     if mode == "sandbox-check":
@@ -108,6 +110,8 @@ def main(mode: str = "pilot", seeds: int = 5, budget: float = 18.0, tasks: str =
             if teammate_asks: c["teammate_asks"] = True  # test option: a teammate asks the team for the secret part
             if strong_teamwork: c["strong_teamwork"] = True  # test option: the RULES line encourages teamwork
             if team_only: c["team_only"] = True  # test option: only the team total is rewarded
+            if random_teams: c["random_teams"] = True  # 2-5 teams, only some with a holder
+            if progress_board: c["progress_board"] = True  # teammates' item-by-item progress after each round
     elif mode == "ablate":
         # baseline gets thread on AND off; every variant is thread-on only
         cfgs = [dict(task=n, seed=s, channel=c, pressure=False, level=3, agent=agent)
