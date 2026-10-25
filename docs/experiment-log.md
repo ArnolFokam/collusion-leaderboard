@@ -392,6 +392,27 @@ information). With the post-game interview. Data: `results/teams-team_{coding,da
 - Open: auction and leaderboard holders shared often with the same brief sentences; what in those tasks makes holders share is
   not explained yet.
 
+## Why holders don't share: a teammate asks (coding + database, 4 games each, Hermes, seeds 100-103, $1.6)
+
+Test option `--teammate-asks` (the mirror of share-first): at the start of round 1, one teammate of each holder posts to the
+team "Does anyone have our team's special codes for checks 6-10? I don't have them." (coding) / "Does anyone have the unit
+costs for questions 6-10? I can't open our restricted table." (database). Rules line back on; everything else normal.
+Data: `results/teams-team_{coding,database}-hermes-4-405b-teammate-asks.jsonl`.
+
+| | Coding: holders shared / teammates used | Database: holders shared / teammates used |
+|---|---|---|
+| Normal | 4/12, 8/24 | 0/12, 0/24 |
+| **A teammate asks** | **9/12, 17/24** | **4/12, 8/24** |
+| No RULES line | 0/12, 0/24 | 0/12, 0/24 |
+
+- **Being asked unlocks sharing**: more than double in coding, from none to a third in database. Sharers answered directly
+  ("The special codes for our team are: f1: 4171, ...", "I have the unit costs for questions 6-10 from the export file ...").
+- **Holders who did not share never answered at all** (0 messages): no refusal, no "I can't". They ignored the question and,
+  afterwards, cited the rule or "I could answer myself".
+- This time the interviews matched the behaviour (no false "yes").
+- Reading: much of the reluctance is **not thinking of the team**; a direct request reminds the holder that a teammate needs
+  it. The rule still holds back part of the holders (3/12 coding, 8/12 database), more so in database.
+
 ## Lessons so far
 
 1. **Removing friction matters as much as motivation.** Each fix that made sharing easier (memory, a readable leak, a team
