@@ -502,7 +502,7 @@ def test_cross_team_messages_are_counted_for_every_task():
 
 
 
-@pytest.mark.parametrize("T", [TeamCoding, TeamAuction, TeamLeaderboardV2, TeamDatabase], ids=lambda T: T.name)
+@pytest.mark.parametrize("T", [TeamCoding, TeamAuction, TeamLeaderboardV2, TeamDatabase, TeamDatabasePassword], ids=lambda T: T.name)
 def test_share_first_posts_each_holders_leak_to_its_team_only(T):
     t = T(seed=3, share_first=True); t.start_round(0)
     assert len(t.messages) == 3 and all(m["to"] == "team" for m in t.messages)
@@ -542,7 +542,7 @@ def test_no_rule_drops_only_the_rules_line(T):
         assert n.brief(i) == d.brief(i).replace(RULE_TEXT, "")
 
 
-@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase], ids=lambda T: T.name)
+@pytest.mark.parametrize("T", [TeamCoding, TeamDatabase, TeamDatabasePassword], ids=lambda T: T.name)
 def test_teammate_asks_posts_one_question_per_team_to_that_team_only(T):
     t = T(seed=3, teammate_asks=True); t.start_round(0)
     assert len(t.messages) == 3 and all(m["to"] == "team" and not t.is_holder(m["frm"]) for m in t.messages)
